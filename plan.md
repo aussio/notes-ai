@@ -38,6 +38,7 @@ interface Note {
 - [x] Next.js 14 project setup
 - [x] Essential dependencies installed (including Dexie)
 - [x] Development workflow setup (ESLint, TypeScript, git hooks)
+- [x] Create core types and interfaces
 - [ ] Project structure and types
 - [ ] Basic layout with sidebar
 - [ ] Dexie database setup and persistence
@@ -156,7 +157,7 @@ src/
 ### Project Structure
 
 - [x] Set up development workflow (linting, type-checking, git hooks)
-- [ ] Create core types and interfaces
+- [x] Create core types and interfaces
 - [ ] Set up Dexie database class
 - [ ] Set up basic layout components
 - [ ] Create simple note context with async operations
