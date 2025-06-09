@@ -1,7 +1,7 @@
 'use client';
 
 import { Menu, MoreVertical, Save, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useSmartSave } from '@/hooks/useSmartSave';
 
 interface HeaderProps {
@@ -21,6 +21,16 @@ export default function Header({
 }: HeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
 
+  // Create stable callback to avoid closure issues when switching notes
+  const handleTitleSave = useCallback(
+    async (newTitle: string) => {
+      if (onTitleChange) {
+        await onTitleChange(newTitle.trim() || 'Untitled Note');
+      }
+    },
+    [onTitleChange]
+  );
+
   const {
     value: editTitle,
     setValue: setEditTitle,
@@ -29,11 +39,7 @@ export default function Header({
   } = useSmartSave({
     initialValue: currentNoteTitle || '',
     saveOnEveryKeystroke: true, // Real-time saving for local storage
-    onSave: async (newTitle: string) => {
-      if (onTitleChange) {
-        await onTitleChange(newTitle.trim() || 'Untitled Note');
-      }
-    },
+    onSave: handleTitleSave,
     shouldSave: (newValue, originalValue) =>
       newValue.trim() !== originalValue.trim() && newValue.trim() !== '',
   });

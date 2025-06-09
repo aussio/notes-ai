@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useNotesStore } from '@/store/notesStore';
 import { useSmartSave } from '@/hooks/useSmartSave';
 import type { Note, CustomElement } from '@/types';
@@ -28,14 +28,15 @@ export default function NoteEditor({ note }: NoteEditorProps) {
     }
   }, []);
 
-  const {
-    value: content,
-    setValue: setContent,
-    save: saveContent,
-  } = useSmartSave({
-    initialValue: extractText(note.content),
-    saveOnEveryKeystroke: true, // Real-time saving for local storage
-    onSave: async (newContent: string) => {
+  // Memoize the extracted text to detect note changes
+  const currentNoteContent = useMemo(
+    () => extractText(note.content),
+    [note.content, extractText]
+  );
+
+  // Create a stable onSave callback that always uses the current note
+  const handleSave = useCallback(
+    async (newContent: string) => {
       // Convert plain text back to structured format
       const structuredContent = newContent.split('\n').map((line) => ({
         type: 'paragraph' as const,
@@ -44,7 +45,12 @@ export default function NoteEditor({ note }: NoteEditorProps) {
 
       await updateNote(note.id, { content: structuredContent });
     },
-    shouldSave: (newValue) => {
+    [note.id, updateNote]
+  );
+
+  // Create a stable shouldSave callback that always compares with current note
+  const handleShouldSave = useCallback(
+    (newValue: string) => {
       // Convert to structured format to compare properly
       const newStructured = newValue.split('\n').map((line) => ({
         type: 'paragraph' as const,
@@ -53,6 +59,18 @@ export default function NoteEditor({ note }: NoteEditorProps) {
 
       return JSON.stringify(newStructured) !== JSON.stringify(note.content);
     },
+    [note.content]
+  );
+
+  const {
+    value: content,
+    setValue: setContent,
+    save: saveContent,
+  } = useSmartSave({
+    initialValue: currentNoteContent,
+    saveOnEveryKeystroke: true, // Real-time saving for local storage
+    onSave: handleSave,
+    shouldSave: handleShouldSave,
   });
 
   return (
