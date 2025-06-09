@@ -4,6 +4,7 @@ interface UseSmartSaveOptions {
   initialValue: string;
   onSave: (value: string) => Promise<void> | void;
   autoSaveDelayMs?: number;
+  saveOnEveryKeystroke?: boolean;
   shouldSave?: (newValue: string, originalValue: string) => boolean;
 }
 
@@ -19,6 +20,7 @@ export function useSmartSave({
   initialValue,
   onSave,
   autoSaveDelayMs = 2500, // 2.5 seconds
+  saveOnEveryKeystroke = false,
   shouldSave = (newValue, originalValue) =>
     newValue.trim() !== originalValue.trim(),
 }: UseSmartSaveOptions): UseSmartSaveReturn {
@@ -76,22 +78,34 @@ export function useSmartSave({
       return;
     }
 
-    // Clear existing timeout
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    // Set new auto-save timeout
-    autoSaveTimeoutRef.current = setTimeout(() => {
+    if (saveOnEveryKeystroke) {
+      // Save immediately on every change
       save();
-    }, autoSaveDelayMs);
-
-    return () => {
+    } else {
+      // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
       }
-    };
-  }, [value, lastSavedValue, shouldSave, save, autoSaveDelayMs]);
+
+      // Set new auto-save timeout
+      autoSaveTimeoutRef.current = setTimeout(() => {
+        save();
+      }, autoSaveDelayMs);
+
+      return () => {
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+        }
+      };
+    }
+  }, [
+    value,
+    lastSavedValue,
+    shouldSave,
+    save,
+    autoSaveDelayMs,
+    saveOnEveryKeystroke,
+  ]);
 
   const handleSetValue = useCallback((newValue: string) => {
     setValue(newValue);

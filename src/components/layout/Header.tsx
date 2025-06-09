@@ -28,6 +28,7 @@ export default function Header({
     isSaving: isSmartSaving,
   } = useSmartSave({
     initialValue: currentNoteTitle || '',
+    saveOnEveryKeystroke: true, // Real-time saving for local storage
     onSave: async (newTitle: string) => {
       if (onTitleChange) {
         await onTitleChange(newTitle.trim() || 'Untitled Note');

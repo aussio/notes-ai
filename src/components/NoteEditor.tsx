@@ -34,6 +34,7 @@ export default function NoteEditor({ note }: NoteEditorProps) {
     save: saveContent,
   } = useSmartSave({
     initialValue: extractText(note.content),
+    saveOnEveryKeystroke: true, // Real-time saving for local storage
     onSave: async (newContent: string) => {
       // Convert plain text back to structured format
       const structuredContent = newContent.split('\n').map((line) => ({
