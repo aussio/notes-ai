@@ -178,6 +178,12 @@ src/
 
 ## 🤖 AI Development Workflow
 
+### Node.js Version Management
+
+- **Always source nvm first**: Use `source ~/.nvm/nvm.sh && nvm use 20` before running npm/node commands
+- **Required version**: Node.js 20+ for Next.js compatibility
+- **Check version**: Use `node --version` to confirm correct version is active
+
 ### Quality Assurance Protocol
 
 - **Before each commit**: Run `npm run check-all` to verify all quality checks pass

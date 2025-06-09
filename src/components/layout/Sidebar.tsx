@@ -1,7 +1,8 @@
 'use client';
 
 import { Plus, Search, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useNotesStore, useFilteredNotes } from '@/store/notesStore';
+import type { CustomElement } from '@/types';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -9,33 +10,37 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const {
+    searchQuery,
+    setSearchQuery,
+    createNote,
+    setCurrentNote,
+    currentNote,
+    isLoading,
+    error,
+  } = useNotesStore();
+  const filteredNotes = useFilteredNotes();
 
-  // Placeholder notes data - will be replaced with real data from database
-  const notes = [
-    {
-      id: '1',
-      title: 'Welcome to Notes',
-      preview: 'This is your first note. Click to edit.',
-      updatedAt: new Date(),
-    },
-    {
-      id: '2',
-      title: 'Getting Started',
-      preview: 'Here are some tips for using this notes app...',
-      updatedAt: new Date(Date.now() - 86400000), // 1 day ago
-    },
-  ];
+  const handleNewNote = async () => {
+    try {
+      await createNote();
+      // The new note is automatically set as current in the store
+    } catch (error) {
+      console.error('Failed to create new note:', error);
+    }
+  };
 
-  const filteredNotes = notes.filter(
-    (note) =>
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.preview.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleNoteClick = (note: (typeof filteredNotes)[0]) => {
+    setCurrentNote(note);
+    // Close sidebar on mobile after selecting a note
+    if (window.innerWidth < 768) {
+      onToggle();
+    }
+  };
 
-  const formatDate = (date: Date) => {
-    const today = new Date();
+  const formatDate = (date: Date | string) => {
     const noteDate = new Date(date);
+    const today = new Date();
 
     if (noteDate.toDateString() === today.toDateString()) {
       return noteDate.toLocaleTimeString('en-US', {
@@ -48,6 +53,25 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  // Generate preview text from note content
+  const getPreviewText = (content: CustomElement[]): string => {
+    if (!content || content.length === 0) return 'Empty note';
+
+    try {
+      // Extract text from first paragraph in Slate.js format
+      const firstParagraph = content[0];
+      if (firstParagraph?.children) {
+        const text = firstParagraph.children
+          .map((child) => child.text || '')
+          .join('');
+        return text.trim() || 'Empty note';
+      }
+      return 'Empty note';
+    } catch {
+      return 'Empty note';
+    }
   };
 
   return (
@@ -84,7 +108,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
         {/* New Note Button */}
         <div className="p-4">
-          <button className="w-full flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button
+            onClick={handleNewNote}
+            disabled={isLoading}
+            className="w-full flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
             <Plus className="w-4 h-4" />
             New Note
           </button>
@@ -106,9 +134,22 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           </div>
         </div>
 
+        {/* Error display */}
+        {error && (
+          <div className="px-4 pb-2">
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* Notes List */}
         <div className="flex-1 overflow-y-auto">
-          {filteredNotes.length === 0 ? (
+          {isLoading ? (
+            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+              Loading notes...
+            </div>
+          ) : filteredNotes.length === 0 ? (
             <div className="p-4 text-center text-gray-500 dark:text-gray-400">
               {searchQuery ? 'No notes found' : 'No notes yet'}
             </div>
@@ -117,8 +158,13 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               {filteredNotes.map((note) => (
                 <button
                   key={note.id}
-                  className="w-full text-left p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 
-                           transition-colors group border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                  onClick={() => handleNoteClick(note)}
+                  className={`w-full text-left p-3 rounded-lg transition-colors group border 
+                           ${
+                             currentNote?.id === note.id
+                               ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                               : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                           }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-medium text-gray-900 dark:text-white truncate">
@@ -129,7 +175,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
-                    {note.preview}
+                    {getPreviewText(note.content)}
                   </p>
                 </button>
               ))}
