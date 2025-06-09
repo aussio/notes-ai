@@ -1,8 +1,7 @@
 'use client';
 
 import { Menu, MoreVertical, Save, Trash2 } from 'lucide-react';
-import { useState, useCallback } from 'react';
-import { useSmartSave } from '@/hooks/useSmartSave';
+import { useState, useEffect } from 'react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -20,33 +19,28 @@ export default function Header({
   onTitleChange,
 }: HeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
 
-  // Create stable callback to avoid closure issues when switching notes
-  const handleTitleSave = useCallback(
-    async (newTitle: string) => {
-      if (onTitleChange) {
-        await onTitleChange(newTitle.trim() || 'Untitled Note');
-      }
-    },
-    [onTitleChange]
-  );
+  // Sync edit title with current note title when it changes
+  useEffect(() => {
+    setEditTitle(currentNoteTitle || '');
+  }, [currentNoteTitle]);
 
-  const {
-    value: editTitle,
-    setValue: setEditTitle,
-    save: saveTitle,
-    isSaving: isSmartSaving,
-  } = useSmartSave({
-    initialValue: currentNoteTitle || '',
-    saveOnEveryKeystroke: true, // Real-time saving for local storage
-    onSave: handleTitleSave,
-    shouldSave: (newValue, originalValue) =>
-      newValue.trim() !== originalValue.trim() && newValue.trim() !== '',
-  });
+  const handleTitleChange = async (newTitle: string) => {
+    setEditTitle(newTitle);
+    const trimmedTitle = newTitle.trim();
+    if (trimmedTitle && trimmedTitle !== currentNoteTitle && onTitleChange) {
+      await onTitleChange(trimmedTitle);
+    }
+  };
 
   const handleTitleSubmit = async () => {
     setIsEditing(false);
-    await saveTitle();
+    // Final save on submit if needed
+    const trimmedTitle = editTitle.trim();
+    if (trimmedTitle && trimmedTitle !== currentNoteTitle && onTitleChange) {
+      await onTitleChange(trimmedTitle || 'Untitled Note');
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -57,9 +51,6 @@ export default function Header({
       setIsEditing(false);
     }
   };
-
-  // Use the smart saving status or the passed prop
-  const showSaving = isSaving || isSmartSaving;
 
   return (
     <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
@@ -78,7 +69,7 @@ export default function Header({
             <input
               type="text"
               value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
+              onChange={(e) => handleTitleChange(e.target.value)}
               onBlur={handleTitleSubmit}
               onKeyDown={handleKeyDown}
               className="text-xl font-semibold bg-transparent border-none outline-none text-gray-900 dark:text-white w-full"
@@ -101,7 +92,7 @@ export default function Header({
       </div>
 
       {/* Save status */}
-      {showSaving && (
+      {isSaving && (
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mr-4">
           <Save className="w-4 h-4 animate-pulse" />
           Saving...

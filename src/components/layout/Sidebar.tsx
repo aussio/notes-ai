@@ -2,6 +2,7 @@
 
 import { Plus, Search, Menu } from 'lucide-react';
 import { useNotesStore, useFilteredNotes } from '@/store/notesStore';
+import { serializeToPlainText } from '@/lib/editor';
 import type { CustomElement } from '@/types';
 
 interface SidebarProps {
@@ -60,16 +61,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     if (!content || content.length === 0) return 'Empty note';
 
     try {
-      // Extract text from all paragraphs in Slate.js format
-      const allText = content
-        .map((paragraph) => {
-          if (paragraph?.children) {
-            return paragraph.children.map((child) => child.text || '').join('');
-          }
-          return '';
-        })
-        .join(' ')
-        .trim();
+      const allText = serializeToPlainText(content).trim();
 
       if (!allText) return 'Empty note';
 

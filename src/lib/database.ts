@@ -6,6 +6,8 @@ import type {
   CreateNoteInput,
   UpdateNoteInput,
   CustomElement,
+  TextElement,
+  ListElement,
 } from '../types';
 
 // Dexie database class with TypeScript integration
@@ -170,7 +172,20 @@ export const notesDatabase: NotesDatabase = {
 // Helper function to extract plain text from Slate content for search
 function extractTextFromSlateContent(content: CustomElement[]): string {
   return content
-    .map((element) => element.children.map((child) => child.text).join(' '))
+    .map((element) => {
+      if (
+        element.type === 'bulleted-list' ||
+        element.type === 'numbered-list'
+      ) {
+        // For list containers, recursively extract text from their children
+        const listElement = element as ListElement;
+        return extractTextFromSlateContent(listElement.children);
+      } else {
+        // For text containers, extract text from CustomText children
+        const textElement = element as TextElement;
+        return textElement.children.map((child) => child.text).join(' ');
+      }
+    })
     .join(' ');
 }
 

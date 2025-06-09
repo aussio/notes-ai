@@ -5,16 +5,32 @@ import { HistoryEditor } from 'slate-history';
 // Extend Slate's types for our custom editor
 export type CustomEditor = BaseEditor & ReactEditor & HistoryEditor;
 
-// Slate node types for rich text content
-export interface CustomElement {
+// Base element interface
+export interface BaseCustomElement {
   type:
     | 'paragraph'
     | 'heading'
     | 'list-item'
     | 'numbered-list'
     | 'bulleted-list';
+  level?: 1 | 2 | 3; // For headings
+  indent?: number; // For list item indentation levels
+}
+
+// Text container elements (paragraph, heading, list-item)
+export interface TextElement extends BaseCustomElement {
+  type: 'paragraph' | 'heading' | 'list-item';
   children: CustomText[];
 }
+
+// List container elements (bulleted-list, numbered-list)
+export interface ListElement extends BaseCustomElement {
+  type: 'bulleted-list' | 'numbered-list';
+  children: TextElement[];
+}
+
+// Union type for all custom elements
+export type CustomElement = TextElement | ListElement;
 
 export interface CustomText {
   text: string;
