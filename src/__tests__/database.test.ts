@@ -141,11 +141,11 @@ describe('Database Operations', () => {
       expect(retrievedNote).toBeUndefined();
     });
 
-    it('should not throw error when deleting non-existent note', async () => {
-      // Dexie doesn't throw error for non-existent deletes
-      await expect(
-        notesDatabase.deleteNote('non-existent')
-      ).resolves.not.toThrow();
+    it('should throw error when deleting non-existent note', async () => {
+      // Our implementation now validates that the note exists before deleting
+      await expect(notesDatabase.deleteNote('non-existent')).rejects.toThrow(
+        'Failed to delete note'
+      );
     });
   });
 

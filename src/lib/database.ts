@@ -120,6 +120,10 @@ export const notesDatabase: NotesDatabase = {
 
   async deleteNote(id: string): Promise<void> {
     try {
+      const existingNote = await db.notes.get(id);
+      if (!existingNote) {
+        throw new Error('Note not found');
+      }
       await db.notes.delete(id);
     } catch (error) {
       console.error('Failed to delete note:', error);

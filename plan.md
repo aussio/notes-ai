@@ -12,7 +12,7 @@ Building a local-first note-taking application with rich text editing, organizat
 - **Rich Text**: SlateJS with slate-history
 - **Icons**: Lucide React
 - **Storage**: Dexie.js (IndexedDB) → Cloud Sync (Phase 4)
-- **State**: React Context + useReducer (Phase 1) → Zustand (Phase 2)
+- **State**: Zustand (from Phase 1)
 - **PWA**: Next.js PWA capabilities
 
 ## 📊 Core Data Models
@@ -69,8 +69,9 @@ src/
 │       ├── NotesList.tsx
 │       └── NoteItem.tsx
 ├── hooks/
-│   ├── useNotes.ts
 │   └── useDatabase.ts
+├── store/
+│   └── notesStore.ts
 ├── lib/
 │   └── database.ts
 ├── types/
@@ -124,15 +125,15 @@ src/
 - [ ] JSON backup/restore
 - [ ] Note sharing capabilities
 
-### Phase 5: State Management Upgrade
+### Phase 5: Advanced State Features
 
-**Goal**: Advanced state management and performance
+**Goal**: Advanced state management features and performance optimization
 
-#### State Management
+#### Advanced State Features
 
-- [ ] Zustand store implementation
 - [ ] Optimistic updates
 - [ ] Undo/redo functionality
+- [ ] State persistence middleware
 - [ ] Performance optimization
 
 #### Advanced Storage Features
@@ -159,12 +160,12 @@ src/
 - [x] Set up development workflow (linting, type-checking, git hooks)
 - [x] Create core types and interfaces
 - [x] Set up Dexie database class
-- [ ] Set up basic layout components
-- [ ] Create simple note context with async operations
+- [x] Set up basic layout components
+- [x] Set up Zustand store with async operations
 
 ### Basic CRUD
 
-- [ ] Note creation functionality
+- [ ] **NEXT: Note creation functionality** ← We are here
 - [ ] Simple text editor (textarea)
 - [ ] Note listing component
 - [ ] Delete functionality
@@ -286,7 +287,7 @@ src/
 - **Next.js**: Future-proof, great PWA support, can add API routes later
 - **SlateJS**: Most extensible rich text editor for React
 - **Dexie.js**: Clean IndexedDB abstraction from the start
-- **React Context → Zustand**: Start simple, upgrade when needed
+- **Zustand**: Excellent performance with selective subscriptions, built-in async support
 
 ### Future Extensibility Points
 
