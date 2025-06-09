@@ -60,15 +60,26 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     if (!content || content.length === 0) return 'Empty note';
 
     try {
-      // Extract text from first paragraph in Slate.js format
-      const firstParagraph = content[0];
-      if (firstParagraph?.children) {
-        const text = firstParagraph.children
-          .map((child) => child.text || '')
-          .join('');
-        return text.trim() || 'Empty note';
+      // Extract text from all paragraphs in Slate.js format
+      const allText = content
+        .map((paragraph) => {
+          if (paragraph?.children) {
+            return paragraph.children.map((child) => child.text || '').join('');
+          }
+          return '';
+        })
+        .join(' ')
+        .trim();
+
+      if (!allText) return 'Empty note';
+
+      // Return first 120 characters with ellipsis if longer
+      const maxLength = 120;
+      if (allText.length <= maxLength) {
+        return allText;
       }
-      return 'Empty note';
+
+      return allText.substring(0, maxLength).trim() + '...';
     } catch {
       return 'Empty note';
     }
