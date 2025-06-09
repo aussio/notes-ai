@@ -61,12 +61,12 @@ export default function Header({
               onChange={(e) => setEditTitle(e.target.value)}
               onBlur={handleTitleSubmit}
               onKeyDown={handleKeyDown}
-              className="text-lg font-medium bg-transparent border-none outline-none text-gray-900 dark:text-white w-full"
+              className="text-xl font-semibold bg-transparent border-none outline-none text-gray-900 dark:text-white w-full"
               autoFocus
             />
           ) : (
             <h1
-              className="text-lg font-medium text-gray-900 dark:text-white truncate cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 -my-1"
+              className="text-xl font-semibold text-gray-900 dark:text-white truncate cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 -my-1"
               onClick={() => setIsEditing(true)}
               title="Click to edit title"
             >
@@ -74,7 +74,7 @@ export default function Header({
             </h1>
           )
         ) : (
-          <h1 className="text-lg font-medium text-gray-500 dark:text-gray-400">
+          <h1 className="text-xl font-semibold text-gray-500 dark:text-gray-400">
             Select a note to begin
           </h1>
         )}
