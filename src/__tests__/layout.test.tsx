@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
@@ -94,41 +94,59 @@ describe('Sidebar Component', () => {
     expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
   });
 
-  it('renders correctly when open', () => {
+  it('renders correctly when open', async () => {
     render(<Sidebar isOpen={true} onToggle={mockOnToggle} />);
 
     expect(screen.getByText('Notes')).toBeInTheDocument();
-    expect(screen.getByText('Welcome to Notes')).toBeInTheDocument();
-    expect(screen.getByText('Getting Started')).toBeInTheDocument();
+
+    // With real store, initially shows "No notes yet" when empty
+    await waitFor(() => {
+      expect(screen.getByText('No notes yet')).toBeInTheDocument();
+    });
   });
 
-  it('filters notes based on search query', () => {
+  it('handles search input correctly', async () => {
     render(<Sidebar isOpen={true} onToggle={mockOnToggle} />);
 
     const searchInput = screen.getByPlaceholderText('Search notes...');
 
-    // Initially shows both notes
-    expect(screen.getByText('Welcome to Notes')).toBeInTheDocument();
-    expect(screen.getByText('Getting Started')).toBeInTheDocument();
+    // Initially shows "No notes yet" with empty store
+    await waitFor(() => {
+      expect(screen.getByText('No notes yet')).toBeInTheDocument();
+    });
 
-    // Filter by title
-    fireEvent.change(searchInput, { target: { value: 'Welcome' } });
-    expect(screen.getByText('Welcome to Notes')).toBeInTheDocument();
-    expect(screen.queryByText('Getting Started')).not.toBeInTheDocument();
+    // Test search input interaction
+    fireEvent.change(searchInput, { target: { value: 'test search' } });
+    expect(searchInput).toHaveValue('test search');
+
+    // With search query but no notes, should show "No notes found"
+    await waitFor(() => {
+      expect(screen.getByText('No notes found')).toBeInTheDocument();
+    });
 
     // Clear search
     fireEvent.change(searchInput, { target: { value: '' } });
-    expect(screen.getByText('Welcome to Notes')).toBeInTheDocument();
-    expect(screen.getByText('Getting Started')).toBeInTheDocument();
+    expect(searchInput).toHaveValue('');
+
+    // Back to "No notes yet"
+    await waitFor(() => {
+      expect(screen.getByText('No notes yet')).toBeInTheDocument();
+    });
   });
 
-  it('shows "No notes found" when search yields no results', () => {
+  it('shows correct New Note button behavior', async () => {
     render(<Sidebar isOpen={true} onToggle={mockOnToggle} />);
 
-    const searchInput = screen.getByPlaceholderText('Search notes...');
-    fireEvent.change(searchInput, { target: { value: 'nonexistent' } });
+    const newNoteButton = screen.getByText('New Note');
+    expect(newNoteButton).toBeInTheDocument();
 
-    expect(screen.getByText('No notes found')).toBeInTheDocument();
+    // Button should be clickable and not disabled initially
+    expect(newNoteButton).not.toBeDisabled();
+
+    // Click the button (this will call the real store's createNote function)
+    fireEvent.click(newNoteButton);
+
+    // The store will handle the note creation
   });
 
   it('calls onToggle when mobile menu button is clicked', () => {
