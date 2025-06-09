@@ -158,7 +158,7 @@ src/
 
 - [x] Set up development workflow (linting, type-checking, git hooks)
 - [x] Create core types and interfaces
-- [ ] Set up Dexie database class
+- [x] Set up Dexie database class
 - [ ] Set up basic layout components
 - [ ] Create simple note context with async operations
 
@@ -183,6 +183,9 @@ src/
 - **Ask before committing**: Always confirm with user before running `git commit`
 - **Check off completed tasks**: Update plan.md checkboxes as features are completed
 - **Test immediately**: Run relevant tests after implementing new features
+- **Write comprehensive tests**: Every new feature should have corresponding tests
+- **Minimal mocking**: Use mocks sparingly and only when absolutely necessary
+- **Fix, don't mock**: When tests fail, fix the underlying issue rather than mocking it away
 
 ### Commit Guidelines
 
@@ -197,13 +200,23 @@ src/
 - **Document decisions**: Update technical decisions section when architecture changes
 - **Note blockers**: Clearly communicate any issues or dependencies
 
+### Testing Guidelines
+
+- **Test-driven approach**: Write tests for all new functionality
+- **Real integration tests**: Test actual database operations, not mocked versions
+- **Fix configuration issues**: When tests fail due to setup/config, fix the root cause
+- **Avoid mock solutions**: Mocks should be used only for external services, not internal logic
+- **Test edge cases**: Include error handling, boundary conditions, and failure scenarios
+- **Maintain test coverage**: Ensure all critical paths are tested
+
 ### Development Cycle
 
 1. **Implement feature**: Write code following our established patterns
-2. **Run quality checks**: `npm run check-all` to verify everything works
-3. **Update plan**: Check off completed items in plan.md
-4. **Ask user**: "Ready to commit [description of changes]?"
-5. **Commit**: Only after user approval
+2. **Write tests**: Create comprehensive tests for the new functionality
+3. **Run quality checks**: `npm run check-all` to verify everything works
+4. **Update plan**: Check off completed items in plan.md
+5. **Ask user**: "Ready to commit [description of changes]?"
+6. **Commit**: Only after user approval
 
 ## 🔧 Development Workflow & Quality
 
