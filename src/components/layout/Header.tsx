@@ -1,7 +1,8 @@
 'use client';
 
 import { Menu, MoreVertical, Save, Trash2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useSmartSave } from '@/hooks/useSmartSave';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -19,17 +20,26 @@ export default function Header({
   onTitleChange,
 }: HeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(currentNoteTitle || '');
 
-  useEffect(() => {
-    setEditTitle(currentNoteTitle || '');
-  }, [currentNoteTitle]);
+  const {
+    value: editTitle,
+    setValue: setEditTitle,
+    save: saveTitle,
+    isSaving: isSmartSaving,
+  } = useSmartSave({
+    initialValue: currentNoteTitle || '',
+    onSave: async (newTitle: string) => {
+      if (onTitleChange) {
+        await onTitleChange(newTitle.trim() || 'Untitled Note');
+      }
+    },
+    shouldSave: (newValue, originalValue) =>
+      newValue.trim() !== originalValue.trim() && newValue.trim() !== '',
+  });
 
-  const handleTitleSubmit = () => {
+  const handleTitleSubmit = async () => {
     setIsEditing(false);
-    if (onTitleChange && editTitle.trim() !== currentNoteTitle) {
-      onTitleChange(editTitle.trim() || 'Untitled Note');
-    }
+    await saveTitle();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -40,6 +50,9 @@ export default function Header({
       setIsEditing(false);
     }
   };
+
+  // Use the smart saving status or the passed prop
+  const showSaving = isSaving || isSmartSaving;
 
   return (
     <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
@@ -81,7 +94,7 @@ export default function Header({
       </div>
 
       {/* Save status */}
-      {isSaving && (
+      {showSaving && (
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mr-4">
           <Save className="w-4 h-4 animate-pulse" />
           Saving...
