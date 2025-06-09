@@ -9,8 +9,7 @@ interface NoteEditorProps {
 }
 
 export default function NoteEditor({ note }: NoteEditorProps) {
-  const { updateNote, isSaving } = useNotesStore();
-  const [title, setTitle] = useState(note.title);
+  const { updateNote } = useNotesStore();
   const [content, setContent] = useState('');
 
   // Extract text content from the note's structured content
@@ -30,16 +29,8 @@ export default function NoteEditor({ note }: NoteEditorProps) {
       }
     };
 
-    setTitle(note.title);
     setContent(extractText(note.content));
   }, [note]);
-
-  const handleTitleChange = async (newTitle: string) => {
-    setTitle(newTitle);
-    if (newTitle.trim() !== note.title) {
-      await updateNote(note.id, { title: newTitle.trim() || 'Untitled Note' });
-    }
-  };
 
   const handleContentChange = async (newContent: string) => {
     setContent(newContent);
@@ -57,28 +48,6 @@ export default function NoteEditor({ note }: NoteEditorProps) {
 
   return (
     <div className="h-full flex flex-col bg-white dark:bg-gray-950">
-      {/* Title input */}
-      <div className="flex-shrink-0 p-6 border-b border-gray-200 dark:border-gray-700">
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onBlur={(e) => handleTitleChange(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.currentTarget.blur();
-            }
-          }}
-          placeholder="Note title..."
-          className="w-full text-2xl font-bold bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-        />
-        {isSaving && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Saving...
-          </p>
-        )}
-      </div>
-
       {/* Content textarea */}
       <div className="flex-1 p-6">
         <textarea

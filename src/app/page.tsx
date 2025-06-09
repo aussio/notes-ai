@@ -10,7 +10,7 @@ import {
 } from '@/store/notesStore';
 
 export default function Home() {
-  const { loadNotes, currentNote, deleteNote } = useNotesStore();
+  const { loadNotes, currentNote, deleteNote, updateNote } = useNotesStore();
   const currentNoteTitle = useCurrentNoteTitle();
   const isSaving = useIsSaving();
 
@@ -25,11 +25,18 @@ export default function Home() {
     }
   };
 
+  const handleTitleChange = async (newTitle: string) => {
+    if (currentNote) {
+      await updateNote(currentNote.id, { title: newTitle });
+    }
+  };
+
   return (
     <MainLayout
       currentNoteTitle={currentNoteTitle}
       isSaving={isSaving}
       onDeleteNote={handleDeleteNote}
+      onTitleChange={handleTitleChange}
     >
       {currentNote ? (
         <NoteEditor note={currentNote} />

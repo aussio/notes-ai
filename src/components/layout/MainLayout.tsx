@@ -9,6 +9,7 @@ interface MainLayoutProps {
   currentNoteTitle?: string;
   isSaving?: boolean;
   onDeleteNote?: () => void;
+  onTitleChange?: (newTitle: string) => void;
 }
 
 export default function MainLayout({
@@ -16,6 +17,7 @@ export default function MainLayout({
   currentNoteTitle,
   isSaving,
   onDeleteNote,
+  onTitleChange,
 }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -36,6 +38,7 @@ export default function MainLayout({
           currentNoteTitle={currentNoteTitle}
           isSaving={isSaving}
           onDelete={onDeleteNote}
+          onTitleChange={onTitleChange}
         />
 
         {/* Main content */}

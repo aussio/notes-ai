@@ -1,12 +1,14 @@
 'use client';
 
 import { Menu, MoreVertical, Save, Trash2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
   currentNoteTitle?: string;
   isSaving?: boolean;
   onDelete?: () => void;
+  onTitleChange?: (newTitle: string) => void;
 }
 
 export default function Header({
@@ -14,7 +16,31 @@ export default function Header({
   currentNoteTitle,
   isSaving = false,
   onDelete,
+  onTitleChange,
 }: HeaderProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(currentNoteTitle || '');
+
+  useEffect(() => {
+    setEditTitle(currentNoteTitle || '');
+  }, [currentNoteTitle]);
+
+  const handleTitleSubmit = () => {
+    setIsEditing(false);
+    if (onTitleChange && editTitle.trim() !== currentNoteTitle) {
+      onTitleChange(editTitle.trim() || 'Untitled Note');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleSubmit();
+    } else if (e.key === 'Escape') {
+      setEditTitle(currentNoteTitle || '');
+      setIsEditing(false);
+    }
+  };
+
   return (
     <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
       {/* Mobile menu button */}
@@ -28,9 +54,25 @@ export default function Header({
       {/* Current note title */}
       <div className="flex-1 min-w-0">
         {currentNoteTitle ? (
-          <h1 className="text-lg font-medium text-gray-900 dark:text-white truncate">
-            {currentNoteTitle}
-          </h1>
+          isEditing ? (
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleTitleSubmit}
+              onKeyDown={handleKeyDown}
+              className="text-lg font-medium bg-transparent border-none outline-none text-gray-900 dark:text-white w-full"
+              autoFocus
+            />
+          ) : (
+            <h1
+              className="text-lg font-medium text-gray-900 dark:text-white truncate cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 -my-1"
+              onClick={() => setIsEditing(true)}
+              title="Click to edit title"
+            >
+              {currentNoteTitle}
+            </h1>
+          )
         ) : (
           <h1 className="text-lg font-medium text-gray-500 dark:text-gray-400">
             Select a note to begin
