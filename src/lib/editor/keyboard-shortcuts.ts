@@ -4,6 +4,7 @@ import {
   indentListItem,
   outdentListItem,
   handleListDeletion,
+  handleEnterKeyPress,
 } from './list-utilities';
 
 // Keyboard shortcut handler type
@@ -22,6 +23,10 @@ export const specialKeyHandlers: Record<string, KeyboardShortcutHandler> = {
       // Tab: indent list item
       return indentListItem(editor);
     }
+  },
+  Enter: (editor, event) => {
+    // Handle Enter key for headers and empty list items
+    return handleEnterKeyPress(editor, event);
   },
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Backspace: (editor, _event) => {

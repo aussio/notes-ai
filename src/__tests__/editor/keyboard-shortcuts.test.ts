@@ -6,7 +6,8 @@ import { createEditor } from 'slate';
 import { withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
 import { handleKeyboardShortcuts } from '@/lib/editor/keyboard-shortcuts';
-import type { CustomEditor } from '@/types';
+import type { CustomEditor, CustomElement } from '@/types';
+import { Transforms } from 'slate';
 
 // Helper to create a test editor
 const createTestEditor = (): CustomEditor => {
@@ -101,6 +102,155 @@ describe('Keyboard Shortcuts', () => {
 
       expect(result).toBe(false);
       expect(event.preventDefault).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Enter key', () => {
+    it('creates a new paragraph after a heading', () => {
+      const editor = createTestEditor();
+      const initialValue: CustomElement[] = [
+        {
+          type: 'heading',
+          level: 1,
+          children: [{ text: 'My Heading' }],
+        },
+      ];
+
+      editor.children = initialValue;
+      Transforms.select(editor, [0, 0]); // Select in the heading
+
+      const mockEvent = {
+        key: 'Enter',
+        preventDefault: jest.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      const handled = handleKeyboardShortcuts(mockEvent, editor);
+
+      expect(handled).toBe(true);
+      expect(mockEvent.preventDefault).toHaveBeenCalled();
+      expect(editor.children).toHaveLength(2);
+      expect((editor.children[1] as CustomElement).type).toBe('paragraph');
+    });
+
+    it('converts empty list item to paragraph outside the list', () => {
+      const editor = createTestEditor();
+      const initialValue: CustomElement[] = [
+        {
+          type: 'bulleted-list',
+          children: [
+            {
+              type: 'list-item',
+              children: [{ text: 'Item 1' }],
+            },
+            {
+              type: 'list-item',
+              children: [{ text: '' }], // Empty list item
+            },
+          ],
+        },
+      ];
+
+      editor.children = initialValue;
+      Transforms.select(editor, [0, 1, 0]); // Select in the empty list item
+
+      const mockEvent = {
+        key: 'Enter',
+        preventDefault: jest.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      const handled = handleKeyboardShortcuts(mockEvent, editor);
+
+      expect(handled).toBe(true);
+      expect(mockEvent.preventDefault).toHaveBeenCalled();
+
+      // Should have a list with one item and a paragraph after it
+      expect(editor.children).toHaveLength(2);
+      expect((editor.children[0] as CustomElement).type).toBe('bulleted-list');
+      expect((editor.children[0] as CustomElement).children).toHaveLength(1);
+      expect((editor.children[1] as CustomElement).type).toBe('paragraph');
+    });
+
+    it('removes empty list container when converting the only list item', () => {
+      const editor = createTestEditor();
+      const initialValue: CustomElement[] = [
+        {
+          type: 'bulleted-list',
+          children: [
+            {
+              type: 'list-item',
+              children: [{ text: '' }], // Only empty list item
+            },
+          ],
+        },
+      ];
+
+      editor.children = initialValue;
+      Transforms.select(editor, [0, 0, 0]); // Select in the empty list item
+
+      const mockEvent = {
+        key: 'Enter',
+        preventDefault: jest.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      const handled = handleKeyboardShortcuts(mockEvent, editor);
+
+      expect(handled).toBe(true);
+      expect(mockEvent.preventDefault).toHaveBeenCalled();
+
+      // Should have just a paragraph (list was removed)
+      expect(editor.children).toHaveLength(1);
+      expect((editor.children[0] as CustomElement).type).toBe('paragraph');
+    });
+
+    it('does not handle Enter on non-empty list items', () => {
+      const editor = createTestEditor();
+      const initialValue: CustomElement[] = [
+        {
+          type: 'bulleted-list',
+          children: [
+            {
+              type: 'list-item',
+              children: [{ text: 'Non-empty item' }],
+            },
+          ],
+        },
+      ];
+
+      editor.children = initialValue;
+      Transforms.select(editor, [0, 0, 0]); // Select in the non-empty list item
+
+      const mockEvent = {
+        key: 'Enter',
+        preventDefault: jest.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      const handled = handleKeyboardShortcuts(mockEvent, editor);
+
+      expect(handled).toBe(false);
+      expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+    });
+
+    it('does not handle Enter on regular paragraphs', () => {
+      const editor = createTestEditor();
+      const initialValue: CustomElement[] = [
+        {
+          type: 'paragraph',
+          children: [{ text: 'Regular paragraph' }],
+        },
+      ];
+
+      editor.children = initialValue;
+      Transforms.select(editor, [0, 0]); // Select in the paragraph
+
+      const mockEvent = {
+        key: 'Enter',
+        preventDefault: jest.fn(),
+      } as unknown as React.KeyboardEvent;
+
+      const handled = handleKeyboardShortcuts(mockEvent, editor);
+
+      expect(handled).toBe(false);
+      expect(mockEvent.preventDefault).not.toHaveBeenCalled();
     });
   });
 });

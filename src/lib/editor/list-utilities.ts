@@ -154,3 +154,104 @@ export const handleListDeletion = (editor: CustomEditor) => {
 
   return false; // Let default deletion behavior continue
 };
+
+export const handleEnterKeyPress = (
+  editor: CustomEditor,
+  event: React.KeyboardEvent
+) => {
+  const { selection } = editor;
+  if (!selection) return false;
+
+  // Get the current block element
+  const [currentBlock] = Array.from(
+    Editor.nodes(editor, {
+      at: selection,
+      match: (n) =>
+        !Editor.isEditor(n) &&
+        Element.isElement(n) &&
+        (n.type === 'heading' || n.type === 'list-item'),
+      mode: 'lowest',
+    })
+  );
+
+  if (!currentBlock) return false;
+
+  const [blockNode, blockPath] = currentBlock;
+  const customElement = blockNode as CustomElement;
+
+  // Scenario 1: Handle Enter on heading elements
+  if (customElement.type === 'heading') {
+    event.preventDefault();
+
+    // Insert a new paragraph after the heading
+    const newParagraph = {
+      type: 'paragraph' as const,
+      children: [{ text: '' }],
+    };
+
+    Transforms.insertNodes(editor, newParagraph, {
+      at: [blockPath[0] + 1],
+    });
+
+    // Move cursor to the new paragraph
+    Transforms.select(editor, [blockPath[0] + 1, 0]);
+
+    return true;
+  }
+
+  // Scenario 2: Handle Enter on empty list items
+  if (customElement.type === 'list-item') {
+    // Check if the list item is empty (only contains empty text)
+    const isEmpty = customElement.children.every(
+      (child) => child.text === '' || (child.text && child.text.trim() === '')
+    );
+
+    if (isEmpty) {
+      event.preventDefault();
+
+      // Get the parent list container
+      const [parentList, parentListPath] = Editor.parent(editor, blockPath);
+
+      if (
+        !Element.isElement(parentList) ||
+        (parentList.type !== 'bulleted-list' &&
+          parentList.type !== 'numbered-list')
+      ) {
+        return false;
+      }
+
+      const wasOnlyItem = parentList.children.length === 1;
+
+      // Convert the empty list item to a paragraph
+      const newParagraph = {
+        type: 'paragraph' as const,
+        children: [{ text: '' }],
+      };
+
+      // Remove the empty list item
+      Transforms.removeNodes(editor, { at: blockPath });
+
+      // Insert the new paragraph after the list
+      Transforms.insertNodes(editor, newParagraph, {
+        at: [parentListPath[0] + 1],
+      });
+
+      // If this was the only item in the list, remove the now-empty list container
+      if (wasOnlyItem) {
+        Transforms.removeNodes(editor, {
+          at: parentListPath,
+        });
+
+        // Select the paragraph (adjust path since list was removed)
+        Transforms.select(editor, [parentListPath[0], 0]);
+      } else {
+        // Select the new paragraph after the list
+        Transforms.select(editor, [parentListPath[0] + 1, 0]);
+      }
+
+      return true;
+    }
+  }
+
+  return false; // Let default Enter behavior handle other cases
+};
