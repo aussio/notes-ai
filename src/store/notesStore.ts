@@ -183,16 +183,21 @@ export const useFilteredNotes = () => {
   const notes = useNotesStore((state) => state.notes);
   const searchQuery = useNotesStore((state) => state.searchQuery);
 
-  if (!searchQuery.trim()) {
-    return notes;
+  let filteredNotes = notes;
+
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    filteredNotes = notes.filter(
+      (note) =>
+        note.title.toLowerCase().includes(query) ||
+        // Simple content search - could be enhanced with full-text search
+        JSON.stringify(note.content).toLowerCase().includes(query)
+    );
   }
 
-  const query = searchQuery.toLowerCase();
-  return notes.filter(
-    (note) =>
-      note.title.toLowerCase().includes(query) ||
-      // Simple content search - could be enhanced with full-text search
-      JSON.stringify(note.content).toLowerCase().includes(query)
+  // Sort by updatedAt descending (most recently edited first)
+  return filteredNotes.sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
 };
 

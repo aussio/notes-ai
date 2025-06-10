@@ -98,7 +98,7 @@ src/
 #### Core Features
 
 - [x] Local text search (title + content)
-- [ ] Sorted by last edited
+- [x] Sorted by last edited
 
 ### Phase 3: Polish & PWA
 
@@ -182,7 +182,6 @@ src/
 
 ### Node.js Version Management
 
-- **Always source nvm first**: Use `source ~/.nvm/nvm.sh && nvm use 20` before running npm/node commands
 - **Required version**: Node.js 20+ for Next.js compatibility
 - **Check version**: Use `node --version` to confirm correct version is active
 

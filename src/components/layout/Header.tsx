@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, MoreVertical, Save, Trash2 } from 'lucide-react';
+import { Menu, MoreVertical, Save, Trash2, Bug } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface HeaderProps {
@@ -9,6 +9,8 @@ interface HeaderProps {
   isSaving?: boolean;
   onDelete?: () => void;
   onTitleChange?: (newTitle: string) => void;
+  onToggleDebug?: () => void;
+  isDebugVisible?: boolean;
 }
 
 export default function Header({
@@ -17,6 +19,8 @@ export default function Header({
   isSaving = false,
   onDelete,
   onTitleChange,
+  onToggleDebug,
+  isDebugVisible = false,
 }: HeaderProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -100,24 +104,42 @@ export default function Header({
       )}
 
       {/* Actions menu */}
-      {currentNoteTitle && (
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
+        {/* Debug button - always visible in development */}
+        {process.env.NODE_ENV === 'development' && onToggleDebug && (
           <button
-            onClick={onDelete}
-            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-            title="Delete note"
+            onClick={onToggleDebug}
+            className={`p-2 rounded-lg transition-colors ${
+              isDebugVisible
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
+            }`}
+            title="Toggle Slate debug panel"
           >
-            <Trash2 className="w-4 h-4" />
+            <Bug className="w-4 h-4" />
           </button>
+        )}
 
-          <button
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
-            title="More options"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+        {/* Note-specific actions */}
+        {currentNoteTitle && (
+          <>
+            <button
+              onClick={onDelete}
+              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
+              title="Delete note"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+              title="More options"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </>
+        )}
+      </div>
     </header>
   );
 }

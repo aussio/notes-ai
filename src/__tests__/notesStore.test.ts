@@ -394,6 +394,76 @@ describe('Selectors', () => {
       expect(result.current).toHaveLength(1);
       expect(result.current[0].title).toBe('Note 1');
     });
+
+    it('sorts notes by updatedAt in descending order', () => {
+      const now = new Date();
+      const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+      const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      const notes = [
+        createMockNote({
+          id: '1',
+          title: 'Oldest Note',
+          updatedAt: dayAgo,
+        }),
+        createMockNote({
+          id: '2',
+          title: 'Newest Note',
+          updatedAt: now,
+        }),
+        createMockNote({
+          id: '3',
+          title: 'Middle Note',
+          updatedAt: hourAgo,
+        }),
+      ];
+
+      act(() => {
+        useNotesStore.setState({ notes, searchQuery: '' });
+      });
+
+      const { result } = renderHook(() => useFilteredNotes());
+
+      // Should be sorted by updatedAt descending (newest first)
+      expect(result.current).toHaveLength(3);
+      expect(result.current[0].title).toBe('Newest Note');
+      expect(result.current[1].title).toBe('Middle Note');
+      expect(result.current[2].title).toBe('Oldest Note');
+    });
+
+    it('sorts filtered search results by updatedAt in descending order', () => {
+      const now = new Date();
+      const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+      const notes = [
+        createMockNote({
+          id: '1',
+          title: 'JavaScript Tutorial',
+          updatedAt: hourAgo,
+        }),
+        createMockNote({
+          id: '2',
+          title: 'TypeScript Guide',
+          updatedAt: now,
+        }),
+        createMockNote({
+          id: '3',
+          title: 'Python Notes',
+          updatedAt: now,
+        }),
+      ];
+
+      act(() => {
+        useNotesStore.setState({ notes, searchQuery: 'script' });
+      });
+
+      const { result } = renderHook(() => useFilteredNotes());
+
+      // Should filter to only notes containing "script" and sort by updatedAt descending
+      expect(result.current).toHaveLength(2);
+      expect(result.current[0].title).toBe('TypeScript Guide');
+      expect(result.current[1].title).toBe('JavaScript Tutorial');
+    });
   });
 
   describe('useCurrentNoteTitle', () => {

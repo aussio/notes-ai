@@ -10,6 +10,8 @@ interface MainLayoutProps {
   isSaving?: boolean;
   onDeleteNote?: () => void;
   onTitleChange?: (newTitle: string) => void;
+  onToggleDebug?: () => void;
+  isDebugVisible?: boolean;
 }
 
 export default function MainLayout({
@@ -18,6 +20,8 @@ export default function MainLayout({
   isSaving,
   onDeleteNote,
   onTitleChange,
+  onToggleDebug,
+  isDebugVisible,
 }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -39,6 +43,8 @@ export default function MainLayout({
           isSaving={isSaving}
           onDelete={onDeleteNote}
           onTitleChange={onTitleChange}
+          onToggleDebug={onToggleDebug}
+          isDebugVisible={isDebugVisible}
         />
 
         {/* Main content */}
