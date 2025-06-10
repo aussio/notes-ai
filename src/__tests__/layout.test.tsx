@@ -12,6 +12,10 @@ jest.mock('lucide-react', () => ({
   MoreVertical: () => <div data-testid="more-vertical-icon" />,
   Save: () => <div data-testid="save-icon" />,
   Trash2: () => <div data-testid="trash-icon" />,
+  Sun: () => <div data-testid="sun-icon" />,
+  Moon: () => <div data-testid="moon-icon" />,
+  Monitor: () => <div data-testid="monitor-icon" />,
+  Bug: () => <div data-testid="bug-icon" />,
 }));
 
 describe('Header Component', () => {
@@ -72,7 +76,7 @@ describe('Header Component', () => {
   it('calls onToggleSidebar when menu button is clicked', () => {
     render(<Header onToggleSidebar={mockToggleSidebar} />);
 
-    const menuButton = screen.getByRole('button');
+    const menuButton = screen.getByTestId('menu-icon').closest('button')!;
     fireEvent.click(menuButton);
 
     expect(mockToggleSidebar).toHaveBeenCalledTimes(1);

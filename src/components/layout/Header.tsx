@@ -2,6 +2,7 @@
 
 import { Menu, MoreVertical, Save, Trash2, Bug } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -105,6 +106,9 @@ export default function Header({
 
       {/* Actions menu */}
       <div className="flex items-center gap-2">
+        {/* Theme toggle */}
+        <ThemeToggle />
+
         {/* Debug button - always visible in development */}
         {process.env.NODE_ENV === 'development' && onToggleDebug && (
           <button

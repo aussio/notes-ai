@@ -1,8 +1,5 @@
 'use client';
 
- 
- 
-
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Copy, X } from 'lucide-react';
 import type { CustomElement } from '@/types';
@@ -74,7 +71,7 @@ export default function SlateDebugPanel({
     return (
       <div key={path} style={{ marginLeft: indent }} className="py-1">
         <div className="flex items-start gap-2">
-          {hasChildren && (
+          {hasChildren ? (
             <button
               onClick={() => toggleNode(path)}
               className="flex-shrink-0 p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
@@ -85,38 +82,38 @@ export default function SlateDebugPanel({
                 <ChevronRight className="w-4 h-4" />
               )}
             </button>
-          )}
+          ) : null}
 
           <div className="flex-1 text-sm">
             <span className="text-purple-600 dark:text-purple-400 font-mono">
               {String(nodeObj.type || 'element')}
             </span>
-            {nodeObj.type && (
+            {nodeObj.type ? (
               <span className="text-gray-500 dark:text-gray-400 ml-2">
                 type: &quot;{String(nodeObj.type)}&quot;
               </span>
-            )}
+            ) : null}
             {Object.keys(nodeObj).filter(
               (key) => key !== 'type' && key !== 'children'
-            ).length > 0 && (
+            ).length > 0 ? (
               <span className="text-gray-500 dark:text-gray-400 ml-2">
                 {Object.keys(nodeObj)
                   .filter((key) => key !== 'type' && key !== 'children')
                   .map((key) => `${key}: ${JSON.stringify(nodeObj[key])}`)
                   .join(', ')}
               </span>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {hasChildren && isExpanded && (
+        {hasChildren && isExpanded ? (
           <div className="mt-1">
             {(nodeObj.children as unknown[]).map(
               (child: unknown, index: number) =>
                 renderNode(child, `${path}.children[${index}]`, depth + 1)
             )}
           </div>
-        )}
+        ) : null}
       </div>
     );
   };

@@ -100,15 +100,15 @@ src/
 - [x] Local text search (title + content)
 - [x] Sorted by last edited
 
-### Phase 3: Polish & PWA
+### Phase 3: Polish & PWA ✅ COMPLETED
 
 **Goal**: Production-ready app with offline capabilities
 
 #### User Experience
 
-- [ ] Dark/light theme toggle
-- [ ] Responsive design
-- [ ] Keyboard shortcuts
+- [x] Dark/light theme toggle
+- [x] Responsive design (already implemented)
+- [x] Keyboard shortcuts (already implemented)
 
 #### PWA Features
 
@@ -175,6 +175,7 @@ src/
 ### Core Features
 
 - [x] Auto-save implementation (real-time on every keystroke)
+- [x] Dark/light theme toggle (Phase 3)
 - [ ] **NEXT: Basic local text search** ← We are here
 - [ ] Polish and testing
 
