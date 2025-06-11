@@ -6,7 +6,7 @@ import { createEditor } from 'slate';
 import { withReact } from 'slate-react';
 import { withHistory } from 'slate-history';
 import { handleKeyboardShortcuts } from '@/lib/editor/keyboard-shortcuts';
-import type { CustomEditor, CustomElement } from '@/types';
+import type { CustomEditor, CustomElement, ListElement } from '@/types';
 import { Transforms } from 'slate';
 
 // Helper to create a test editor
@@ -166,7 +166,7 @@ describe('Keyboard Shortcuts', () => {
       // Should have a list with one item and a paragraph after it
       expect(editor.children).toHaveLength(2);
       expect((editor.children[0] as CustomElement).type).toBe('bulleted-list');
-      expect((editor.children[0] as CustomElement).children).toHaveLength(1);
+      expect((editor.children[0] as ListElement).children).toHaveLength(1);
       expect((editor.children[1] as CustomElement).type).toBe('paragraph');
     });
 

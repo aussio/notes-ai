@@ -48,7 +48,7 @@ export default function Home() {
         isDebugVisible={isDebugVisible}
       >
         {currentNote ? (
-          <NoteEditor note={currentNote} />
+          <NoteEditor />
         ) : (
           <div className="flex items-center justify-center h-full p-8">
             <div className="text-center max-w-md">

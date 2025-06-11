@@ -43,7 +43,7 @@ export interface Notecard {
 export interface NotecardEmbedElement extends BaseCustomElement {
   type: 'notecard-embed';
   notecardId: string;
-  children: [{ text: '' }]; // Required by Slate
+  children: [{ text: '' }]; // Required by Slate, even for void elements
 }
 
 // Union type for all custom elements

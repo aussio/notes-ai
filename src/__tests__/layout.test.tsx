@@ -4,6 +4,18 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import MainLayout from '@/components/layout/MainLayout';
 
+// Mock Next.js navigation hooks
+jest.mock('next/navigation', () => ({
+  usePathname: jest.fn(() => '/'),
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    forward: jest.fn(),
+    refresh: jest.fn(),
+  })),
+}));
+
 // Mock Lucide React icons
 jest.mock('lucide-react', () => ({
   Menu: () => <div data-testid="menu-icon" />,
@@ -16,6 +28,8 @@ jest.mock('lucide-react', () => ({
   Moon: () => <div data-testid="moon-icon" />,
   Monitor: () => <div data-testid="monitor-icon" />,
   Bug: () => <div data-testid="bug-icon" />,
+  FileText: () => <div data-testid="file-text-icon" />,
+  CreditCard: () => <div data-testid="credit-card-icon" />,
 }));
 
 describe('Header Component', () => {
@@ -93,7 +107,7 @@ describe('Sidebar Component', () => {
   it('renders correctly when closed', () => {
     render(<Sidebar isOpen={false} onToggle={mockOnToggle} />);
 
-    expect(screen.getByText('Notes')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Notes' })).toBeInTheDocument();
     expect(screen.getByText('New Note')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
   });
@@ -101,7 +115,7 @@ describe('Sidebar Component', () => {
   it('renders correctly when open', async () => {
     render(<Sidebar isOpen={true} onToggle={mockOnToggle} />);
 
-    expect(screen.getByText('Notes')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Notes' })).toBeInTheDocument();
 
     // With real store, initially shows "No notes yet" when empty
     await waitFor(() => {
@@ -202,7 +216,9 @@ describe('MainLayout Component', () => {
     );
 
     // Sidebar should be closed initially on mobile
-    const sidebar = screen.getByText('Notes').closest('[class*="transform"]');
+    const sidebar = screen
+      .getByRole('heading', { name: 'Notes' })
+      .closest('[class*="transform"]');
     expect(sidebar).toHaveClass('-translate-x-full');
   });
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useState } from 'react';
 import {
   Bold,
   Italic,
@@ -9,6 +10,7 @@ import {
   Heading3,
   List,
   ListOrdered,
+  CreditCard,
 } from 'lucide-react';
 import { useSlate } from 'slate-react';
 import { Editor, Element } from 'slate';
@@ -18,7 +20,9 @@ import {
   toggleBlock,
   isBlockActive,
   toggleHeading,
+  insertNotecardEmbed,
 } from '@/lib/editor';
+import { useNotecardsStore } from '@/store/notecardsStore';
 import type { CustomElement, TextElement, ListElement } from '@/types';
 
 // Type for blocks that can be toggled (matching the one in block-formatting.ts)
@@ -142,6 +146,41 @@ const HeadingButton = ({ level, icon, title }: HeadingButtonProps) => {
   );
 };
 
+const NotecardButton = () => {
+  const editor = useSlate();
+  const { createNotecard } = useNotecardsStore();
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateNotecard = async (event: React.MouseEvent) => {
+    event.preventDefault();
+
+    if (isCreating) return; // Prevent double-clicks
+
+    setIsCreating(true);
+    try {
+      // Create a new empty notecard
+      const newNotecard = await createNotecard('', '');
+
+      // Insert the embed into the editor
+      insertNotecardEmbed(editor, newNotecard.id);
+    } catch (error) {
+      console.error('Failed to create notecard:', error);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  return (
+    <ToolbarButton
+      active={false}
+      onMouseDown={handleCreateNotecard}
+      title="Insert New Notecard"
+    >
+      <CreditCard size={16} />
+    </ToolbarButton>
+  );
+};
+
 export default function Toolbar() {
   return (
     <div className="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
@@ -184,7 +223,7 @@ export default function Toolbar() {
       </div>
 
       {/* Lists */}
-      <div className="flex items-center gap-1 pl-2">
+      <div className="flex items-center gap-1 px-2 border-r border-gray-200 dark:border-gray-700">
         <BlockButton
           format="bulleted-list"
           icon={<List size={16} />}
@@ -195,6 +234,11 @@ export default function Toolbar() {
           icon={<ListOrdered size={16} />}
           title="Numbered List (1. + space)"
         />
+      </div>
+
+      {/* Notecard */}
+      <div className="flex items-center gap-1 pl-2">
+        <NotecardButton />
       </div>
     </div>
   );

@@ -2,7 +2,11 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
 import type { Notecard } from '@/types';
-import { notecardsDatabase } from '@/lib/database';
+import { notecardsDatabase, notesDatabase } from '@/lib/database';
+import {
+  removeNotecardEmbedsFromContent,
+  findNotesWithNotecardEmbeds,
+} from '@/lib/editor';
 import type { CreateNotecardInput, UpdateNotecardInput } from '@/types';
 
 // Create a simplified interface for the store
@@ -16,6 +20,15 @@ const notecardsDB = {
   ) => notecardsDatabase.updateNotecard(id, updates as UpdateNotecardInput),
   deleteNotecard: (id: string) => notecardsDatabase.deleteNotecard(id),
   searchNotecards: (query: string) => notecardsDatabase.searchNotecards(query),
+};
+
+// Callback to notify notes store when notes are updated due to notecard changes
+let notifyNotesStoreUpdate: ((affectedNoteIds: string[]) => void) | null = null;
+
+export const setNotesStoreUpdateCallback = (
+  callback: (affectedNoteIds: string[]) => void
+) => {
+  notifyNotesStoreUpdate = callback;
 };
 
 interface NotecardsState {
@@ -122,6 +135,29 @@ export const useNotecardsStore = create<NotecardsState>()(
       deleteNotecard: async (id: string) => {
         set({ isLoading: true, error: null });
         try {
+          // First, find all notes that contain embeds for this notecard
+          const allNotes = await notesDatabase.getAllNotes();
+          const notesWithEmbeds = findNotesWithNotecardEmbeds(allNotes, id);
+
+          // Remove the notecard embeds from affected notes
+          const affectedNoteIds: string[] = [];
+          for (const note of notesWithEmbeds) {
+            const updatedContent = removeNotecardEmbedsFromContent(
+              note.content,
+              id
+            );
+            await notesDatabase.updateNote(note.id, {
+              content: updatedContent,
+            });
+            affectedNoteIds.push(note.id);
+          }
+
+          // Notify notes store of the updates if callback is available
+          if (notifyNotesStoreUpdate && affectedNoteIds.length > 0) {
+            notifyNotesStoreUpdate(affectedNoteIds);
+          }
+
+          // Then delete the notecard itself
           await notecardsDB.deleteNotecard(id);
           const { notecards, currentNotecard } = get();
 
@@ -140,6 +176,13 @@ export const useNotecardsStore = create<NotecardsState>()(
             currentNotecard: newCurrentNotecard,
             isLoading: false,
           });
+
+          // Log cleanup info for user feedback
+          if (notesWithEmbeds.length > 0) {
+            console.info(
+              `Cleaned up notecard embeds from ${notesWithEmbeds.length} note(s)`
+            );
+          }
         } catch (error) {
           console.error('Failed to delete notecard:', error);
           set({
@@ -218,4 +261,12 @@ export const useCurrentNotecard = () => {
 // Selector for saving state (used in notecard editor)
 export const useIsNotecardSaving = () => {
   return useNotecardsStore((state) => state.isSaving);
+};
+
+// Selector for a specific notecard by ID (used in embeds for real-time sync)
+export const useNotecardById = (id: string) => {
+  return useNotecardsStore((state) => {
+    const notecard = state.notecards.find((notecard) => notecard.id === id);
+    return notecard;
+  });
 };

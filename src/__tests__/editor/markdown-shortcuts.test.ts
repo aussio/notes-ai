@@ -9,8 +9,8 @@ import { handleMarkdownShortcuts } from '@/lib/editor/markdown-shortcuts';
 import type {
   CustomEditor,
   CustomElement,
-  CustomText,
   ListElement,
+  CustomText,
 } from '@/types';
 
 // Helper to create a test editor
@@ -137,8 +137,12 @@ describe('Markdown Shortcuts', () => {
       // Verify: Editor content should change to bulleted list structure
       const [firstNode] = editor.children as CustomElement[];
       expect(firstNode.type).toBe('bulleted-list');
-      expect(firstNode.children[0]).toBeDefined();
-      expect((firstNode as ListElement).children[0].type).toBe('list-item');
+      expect(
+        'children' in firstNode && (firstNode as ListElement).children[0]
+      ).toBeDefined();
+      expect(
+        'children' in firstNode && (firstNode as ListElement).children[0].type
+      ).toBe('list-item');
     });
 
     it('should NOT transform "#### " (invalid pattern)', () => {

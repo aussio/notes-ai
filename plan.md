@@ -142,7 +142,7 @@ src/
 - [ ] JSON backup/restore
 - [ ] Note sharing capabilities
 
-### Phase 5: Notecards & Spaced Repetition Foundation
+### Phase 5: Notecards & Spaced Repetition Foundation ✅ COMPLETED
 
 **Goal**: Implement notecards as standalone entities with embedded support in notes
 
@@ -164,16 +164,26 @@ src/
 
 - [x] Create custom notecard embed Slate element
 - [x] Implement notecard embed rendering in editor
-- [ ] Add toolbar button/shortcut for inserting notecard embeds
-- [ ] Handle notecard selection and inline editing
+- [x] Add toolbar button/shortcut for inserting notecard embeds
+- [x] Handle notecard selection and inline editing
+- [x] **REFACTORED**: Simplified design with table-like layout (front/back rows)
+- [x] **ENHANCED**: Direct inline editing within notes (click to edit front/back)
+- [x] **STREAMLINED**: Auto-save on blur, removed unnecessary help text and keyboard shortcuts
+- [x] **COMPONENTIZED**: Extracted reusable NotecardField component for consistent behavior
+- [x] **SIMPLIFIED CREATION**: Toolbar button now creates new notecard directly instead of searching
+- [x] **AUTO-FOCUS**: New notecards automatically focus the front field for immediate editing
+- [x] **TAB NAVIGATION**: Tab moves from front→back, Shift+Tab moves back→front
+- [x] **TAB EXIT**: Tab from back field exits notecard and moves cursor below the block
+- [x] **AUTO-CLEANUP**: Empty notecards are automatically deleted when abandoned to prevent library clutter
+- [x] **REAL-TIME UPDATES**: Cascade deletion removes notecard embeds from notes immediately without requiring refresh
 
 #### State Management
 
 - [x] Extend Zustand store with notecard operations
-- [ ] Implement real-time sync between embedded and standalone views
+- [x] Implement real-time sync between embedded and standalone views
 - [x] Add notecard search functionality
 - [x] Consistent auto-save experience across notes and notecards
-- [ ] Optimize re-renders for embedded notecard updates
+- [x] Optimize re-renders for embedded notecard updates
 
 #### User Interface
 
@@ -208,10 +218,10 @@ src/
 
 #### Technical Considerations
 
-- **Data Integrity**: Ensure embedded notecards stay in sync with originals
-- **Performance**: Efficient updates when notecard is changed
-- **Validation**: Prevent circular references and invalid embeds
-- **Cleanup**: Handle orphaned embeds when notecards are deleted
+- [x] **Data Integrity**: Ensure embedded notecards stay in sync with originals
+- [x] **Performance**: Efficient updates when notecard is changed
+- [x] **Validation**: Prevent circular references and invalid embeds
+- [x] **Cleanup**: Handle orphaned embeds when notecards are deleted (CASCADE DELETE)
 
 ### Phase 6: Advanced State Features
 
@@ -262,7 +272,8 @@ src/
 
 - [x] Auto-save implementation (real-time on every keystroke)
 - [x] Dark/light theme toggle (Phase 3)
-- [ ] **NEXT: Notecards system implementation** ← We are here
+- [x] **Notecards system implementation** ✅ COMPLETED
+- [ ] **NEXT: Advanced features and improvements** ← We are here
 - [ ] Basic local text search
 - [ ] Polish and testing
 

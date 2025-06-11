@@ -1,5 +1,6 @@
 import { RenderElementProps } from 'slate-react';
-import type { CustomElement } from '@/types';
+import { NotecardEmbed } from '@/components/notecards/NotecardEmbed';
+import type { CustomElement, NotecardEmbedElement } from '@/types';
 
 export default function RenderElement({
   attributes,
@@ -63,6 +64,17 @@ export default function RenderElement({
         <li {...attributes} className="mb-1" style={indentStyles}>
           {children}
         </li>
+      );
+
+    case 'notecard-embed':
+      return (
+        <NotecardEmbed
+          {...{
+            attributes,
+            children,
+            element: customElement as NotecardEmbedElement,
+          }}
+        />
       );
 
     case 'paragraph':

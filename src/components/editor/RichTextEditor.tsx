@@ -18,6 +18,17 @@ interface RichTextEditorProps {
   editorKey?: string; // Force re-render when this changes
 }
 
+// Configure editor with void elements
+const withCustomElements = (editor: CustomEditor) => {
+  const { isVoid } = editor;
+
+  editor.isVoid = (element) => {
+    return element.type === 'notecard-embed' ? true : isVoid(element);
+  };
+
+  return editor;
+};
+
 export default function RichTextEditor({
   value,
   onChange,
@@ -25,9 +36,12 @@ export default function RichTextEditor({
   autoFocus = false,
   editorKey,
 }: RichTextEditorProps) {
-  // Create the editor with React and History plugins
+  // Create the editor with React, History, and custom element plugins
   const editor = useMemo(
-    () => withHistory(withReact(createEditor())) as CustomEditor,
+    () =>
+      withCustomElements(
+        withHistory(withReact(createEditor())) as CustomEditor
+      ),
     []
   );
 

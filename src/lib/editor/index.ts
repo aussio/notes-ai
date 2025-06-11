@@ -16,6 +16,20 @@ export {
 // Heading utilities
 export { toggleHeading } from './heading-utilities';
 
+// Notecard utilities
+export {
+  insertNotecardEmbed,
+  isNotecardEmbedActive,
+  getCurrentNotecardEmbed,
+} from './notecard-utilities';
+
+// Notecard cleanup utilities
+export {
+  removeNotecardEmbedsFromContent,
+  countNotecardEmbeds,
+  findNotesWithNotecardEmbeds,
+} from './notecard-cleanup';
+
 // Keyboard shortcuts
 export {
   handleKeyboardShortcuts,

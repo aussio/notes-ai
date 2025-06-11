@@ -71,7 +71,9 @@ describe('List Utilities', () => {
       // Verify: Should add indent level to the second item
       const [listNode] = editor.children as CustomElement[];
       expect(listNode.type).toBe('bulleted-list');
-      expect(listNode.children.length).toBe(2); // Still two items
+      expect(
+        'children' in listNode && (listNode as ListElement).children.length
+      ).toBe(2); // Still two items
 
       const [firstItem, secondItem] = (listNode as ListElement).children;
       expect(firstItem.type).toBe('list-item');
@@ -134,7 +136,9 @@ describe('List Utilities', () => {
       // Verify: Should reduce the indent level
       const [firstNode] = editor.children as CustomElement[];
       expect(firstNode.type).toBe('bulleted-list');
-      expect(firstNode.children.length).toBe(2);
+      expect(
+        'children' in firstNode && (firstNode as ListElement).children.length
+      ).toBe(2);
 
       const [firstItem, secondItem] = (firstNode as ListElement).children;
       expect(firstItem.type).toBe('list-item');

@@ -4,6 +4,7 @@ import { devtools } from 'zustand/middleware';
 import type { Note } from '@/types';
 import { notesDatabase } from '@/lib/database';
 import type { CreateNoteInput, UpdateNoteInput } from '@/types';
+import { setNotesStoreUpdateCallback } from './notecardsStore';
 
 // Create a simplified interface for the store
 const notesDB = {
@@ -37,6 +38,8 @@ interface NotesState {
   setSearchQuery: (query: string) => void;
   searchNotes: (query: string) => Promise<Note[]>;
   clearError: () => void;
+  // Internal method to refresh specific notes from database
+  refreshNotes: (noteIds: string[]) => Promise<void>;
 }
 
 export const useNotesStore = create<NotesState>()(
@@ -171,12 +174,56 @@ export const useNotesStore = create<NotesState>()(
       clearError: () => {
         set({ error: null });
       },
+
+      // Internal method to refresh specific notes from database
+      refreshNotes: async (noteIds: string[]) => {
+        try {
+          const { notes, currentNote } = get();
+          const updatedNotes = [...notes];
+          let updatedCurrentNote = currentNote;
+
+          for (const noteId of noteIds) {
+            // Get fresh note from database
+            const freshNote = await notesDatabase.getNoteById(noteId);
+            if (freshNote) {
+              // Update in the notes array
+              const noteIndex = updatedNotes.findIndex(
+                (note) => note.id === noteId
+              );
+              if (noteIndex !== -1) {
+                updatedNotes[noteIndex] = freshNote;
+              }
+
+              // Update current note if it's the one being refreshed
+              if (currentNote?.id === noteId) {
+                updatedCurrentNote = freshNote;
+              }
+            }
+          }
+
+          set({
+            notes: updatedNotes,
+            currentNote: updatedCurrentNote,
+          });
+        } catch (error) {
+          console.error('Failed to refresh notes:', error);
+        }
+      },
     })),
     {
       name: 'notes-store', // For Redux DevTools
     }
   )
 );
+
+// Set up the callback for notecard store to notify when notes need updating
+if (typeof window !== 'undefined') {
+  // Only register on client side
+  const store = useNotesStore.getState();
+  setNotesStoreUpdateCallback((affectedNoteIds: string[]) => {
+    store.refreshNotes(affectedNoteIds);
+  });
+}
 
 // Computed selectors for better performance
 export const useFilteredNotes = () => {
