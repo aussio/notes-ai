@@ -19,7 +19,10 @@ import {
   isBlockActive,
   toggleHeading,
 } from '@/lib/editor';
-import type { CustomElement } from '@/types';
+import type { CustomElement, TextElement, ListElement } from '@/types';
+
+// Type for blocks that can be toggled (matching the one in block-formatting.ts)
+type ToggleableBlockType = TextElement['type'] | ListElement['type'];
 
 interface ToolbarButtonProps {
   active: boolean;
@@ -72,7 +75,7 @@ const MarkButton = ({ format, icon, title }: MarkButtonProps) => {
 };
 
 interface BlockButtonProps {
-  format: CustomElement['type'];
+  format: ToggleableBlockType;
   icon: React.ReactNode;
   title: string;
 }

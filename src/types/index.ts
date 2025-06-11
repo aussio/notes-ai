@@ -12,7 +12,8 @@ export interface BaseCustomElement {
     | 'heading'
     | 'list-item'
     | 'numbered-list'
-    | 'bulleted-list';
+    | 'bulleted-list'
+    | 'notecard-embed';
   level?: 1 | 2 | 3; // For headings
   indent?: number; // For list item indentation levels
 }
@@ -29,8 +30,24 @@ export interface ListElement extends BaseCustomElement {
   children: TextElement[];
 }
 
+// Notecard interface
+export interface Notecard {
+  id: string;
+  front: string;
+  back: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Custom Slate element for embedding notecards
+export interface NotecardEmbedElement extends BaseCustomElement {
+  type: 'notecard-embed';
+  notecardId: string;
+  children: [{ text: '' }]; // Required by Slate
+}
+
 // Union type for all custom elements
-export type CustomElement = TextElement | ListElement;
+export type CustomElement = TextElement | ListElement | NotecardEmbedElement;
 
 export interface CustomText {
   text: string;
@@ -62,6 +79,14 @@ export interface DatabaseNote {
   id: string;
   title: string;
   content: string; // JSON serialized SlateJS nodes
+  createdAt: string; // ISO date string for storage
+  updatedAt: string; // ISO date string for storage
+}
+
+export interface DatabaseNotecard {
+  id: string;
+  front: string;
+  back: string;
   createdAt: string; // ISO date string for storage
   updatedAt: string; // ISO date string for storage
 }
@@ -114,9 +139,30 @@ export interface NotesDatabase {
   searchNotes: (query: string) => Promise<Note[]>;
 }
 
+// Notecard database operations interface
+export interface NotecardsDatabase {
+  getAllNotecards: () => Promise<Notecard[]>;
+  getNotecardById: (id: string) => Promise<Notecard | undefined>;
+  createNotecard: (
+    notecard: Omit<Notecard, 'id' | 'createdAt' | 'updatedAt'>
+  ) => Promise<Notecard>;
+  updateNotecard: (
+    id: string,
+    updates: Partial<Omit<Notecard, 'id' | 'createdAt'>>
+  ) => Promise<Notecard>;
+  deleteNotecard: (id: string) => Promise<void>;
+  searchNotecards: (query: string) => Promise<Notecard[]>;
+}
+
 // Utility types
 export type CreateNoteInput = Omit<Note, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateNoteInput = Partial<Omit<Note, 'id' | 'createdAt'>>;
+
+export type CreateNotecardInput = Omit<
+  Notecard,
+  'id' | 'createdAt' | 'updatedAt'
+>;
+export type UpdateNotecardInput = Partial<Omit<Notecard, 'id' | 'createdAt'>>;
 
 // Component prop types
 export interface NoteItemProps {

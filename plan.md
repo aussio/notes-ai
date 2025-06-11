@@ -25,6 +25,21 @@ interface Note {
   createdAt: Date;
   updatedAt: Date;
 }
+
+interface Notecard {
+  id: string;
+  front: string;
+  back: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Custom Slate element for embedding notecards
+interface NotecardEmbedElement {
+  type: 'notecard-embed';
+  notecardId: string;
+  children: [{ text: '' }]; // Required by Slate
+}
 ```
 
 ## 🚀 Implementation Phases
@@ -127,7 +142,78 @@ src/
 - [ ] JSON backup/restore
 - [ ] Note sharing capabilities
 
-### Phase 5: Advanced State Features
+### Phase 5: Notecards & Spaced Repetition Foundation
+
+**Goal**: Implement notecards as standalone entities with embedded support in notes
+
+#### Data Architecture
+
+- [x] Extend database schema to include notecards table
+- [x] Create normalized data model with proper relationships
+- [ ] Implement bidirectional sync between standalone and embedded notecards
+- [x] Add notecard-specific database operations (CRUD)
+
+#### Core Notecard Features
+
+- [x] Notecard creation and editing interface
+- [x] Notecard list view with search/filter capabilities
+- [x] Delete notecard functionality with proper cleanup
+- [x] Simple front/back text content (foundation for rich text later)
+
+#### Slate Integration
+
+- [x] Create custom notecard embed Slate element
+- [x] Implement notecard embed rendering in editor
+- [ ] Add toolbar button/shortcut for inserting notecard embeds
+- [ ] Handle notecard selection and inline editing
+
+#### State Management
+
+- [x] Extend Zustand store with notecard operations
+- [ ] Implement real-time sync between embedded and standalone views
+- [x] Add notecard search functionality
+- [x] Consistent auto-save experience across notes and notecards
+- [ ] Optimize re-renders for embedded notecard updates
+
+#### User Interface
+
+- [x] Notecard management page/section
+- [x] Embedded notecard styling (card-like appearance with border/shadow)
+- [x] Responsive design for notecard views
+- [x] Basic notecard preview in embed
+- [x] Navigation between Notes and Notecards in sidebar
+- [x] Unified sidebar experience for both notes and notecards
+- [x] Consistent editor styling and behavior
+
+#### File Structure Extensions
+
+```
+src/
+├── components/
+│   ├── notecards/
+│   │   ├── NotecardsList.tsx
+│   │   ├── NotecardItem.tsx
+│   │   ├── NotecardEditor.tsx
+│   │   └── NotecardEmbed.tsx
+│   └── editor/
+│       └── elements/
+│           └── NotecardEmbedElement.tsx
+├── hooks/
+│   └── useNotecards.ts
+├── store/
+│   └── notecardsStore.ts
+└── types/
+    └── notecards.ts
+```
+
+#### Technical Considerations
+
+- **Data Integrity**: Ensure embedded notecards stay in sync with originals
+- **Performance**: Efficient updates when notecard is changed
+- **Validation**: Prevent circular references and invalid embeds
+- **Cleanup**: Handle orphaned embeds when notecards are deleted
+
+### Phase 6: Advanced State Features
 
 **Goal**: Advanced state management features and performance optimization
 
@@ -144,7 +230,7 @@ src/
 - [ ] Query optimization
 - [ ] Bulk operations
 
-### Phase 6: Cloud Preparation
+### Phase 7: Cloud Preparation
 
 **Goal**: Foundation for future cloud sync
 
@@ -176,7 +262,8 @@ src/
 
 - [x] Auto-save implementation (real-time on every keystroke)
 - [x] Dark/light theme toggle (Phase 3)
-- [ ] **NEXT: Basic local text search** ← We are here
+- [ ] **NEXT: Notecards system implementation** ← We are here
+- [ ] Basic local text search
 - [ ] Polish and testing
 
 ## 🤖 AI Development Workflow
@@ -311,6 +398,9 @@ src/
 - Modular storage adapters (local, cloud, sync)
 - Component composition for different note types
 - Event-driven architecture for feature additions
+- Rich text support for notecard front/back content
+- Spaced repetition algorithms and scheduling
+- Notecard templates and categories
 
 ## 📈 Success Metrics
 

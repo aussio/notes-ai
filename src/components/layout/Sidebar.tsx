@@ -1,9 +1,14 @@
 'use client';
 
-import { Plus, Search, Menu } from 'lucide-react';
+import { Plus, Search, Menu, FileText, CreditCard, Trash2 } from 'lucide-react';
 import { useNotesStore, useFilteredNotes } from '@/store/notesStore';
+import {
+  useNotecardsStore,
+  useFilteredNotecards,
+} from '@/store/notecardsStore';
 import { serializeToPlainText } from '@/lib/editor';
-import type { CustomElement } from '@/types';
+import type { CustomElement, Notecard } from '@/types';
+import { usePathname, useRouter } from 'next/navigation';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,29 +16,91 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Notes store
   const {
-    searchQuery,
-    setSearchQuery,
+    searchQuery: notesSearchQuery,
+    setSearchQuery: setNotesSearchQuery,
     createNote,
     setCurrentNote,
     currentNote,
-    isLoading,
-    error,
+    isLoading: notesLoading,
+    error: notesError,
   } = useNotesStore();
-  const filteredNotes = useFilteredNotes();
 
-  const handleNewNote = async () => {
+  // Notecards store
+  const {
+    searchQuery: notecardsSearchQuery,
+    setSearchQuery: setNotecardsSearchQuery,
+    createNotecard,
+    setCurrentNotecard,
+    currentNotecard,
+    isLoading: notecardsLoading,
+    error: notecardsError,
+    deleteNotecard,
+  } = useNotecardsStore();
+
+  const filteredNotes = useFilteredNotes();
+  const filteredNotecards = useFilteredNotecards();
+
+  // Determine current context
+  const isNotecards = pathname === '/notecards';
+  const searchQuery = isNotecards ? notecardsSearchQuery : notesSearchQuery;
+  const setSearchQuery = isNotecards
+    ? setNotecardsSearchQuery
+    : setNotesSearchQuery;
+  const isLoading = isNotecards ? notecardsLoading : notesLoading;
+  const error = isNotecards ? notecardsError : notesError;
+
+  const handleNewItem = async () => {
     try {
-      await createNote();
-      // The new note is automatically set as current in the store
+      if (isNotecards) {
+        const newNotecard = await createNotecard('Front text', 'Back text');
+        setCurrentNotecard(newNotecard);
+      } else {
+        await createNote();
+        // The new note is automatically set as current in the store
+      }
     } catch (error) {
-      console.error('Failed to create new note:', error);
+      console.error(
+        `Failed to create ${isNotecards ? 'notecard' : 'note'}:`,
+        error
+      );
     }
   };
 
   const handleNoteClick = (note: (typeof filteredNotes)[0]) => {
     setCurrentNote(note);
     // Close sidebar on mobile after selecting a note
+    if (window.innerWidth < 768) {
+      onToggle();
+    }
+  };
+
+  const handleNotecardClick = (notecard: Notecard) => {
+    setCurrentNotecard(notecard);
+    // Close sidebar on mobile after selecting a notecard
+    if (window.innerWidth < 768) {
+      onToggle();
+    }
+  };
+
+  const handleDeleteNotecard = async (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this notecard?')) {
+      try {
+        await deleteNotecard(id);
+      } catch (error) {
+        console.error('Failed to delete notecard:', error);
+      }
+    }
+  };
+
+  const handleNavigate = (path: string) => {
+    router.push(path);
+    // Close sidebar on mobile after navigation
     if (window.innerWidth < 768) {
       onToggle();
     }
@@ -99,7 +166,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Notes
+            {isNotecards ? 'Notecards' : 'Notes'}
           </h1>
           <button
             onClick={onToggle}
@@ -109,15 +176,43 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           </button>
         </div>
 
-        {/* New Note Button */}
+        {/* Navigation Tabs */}
+        <div className="px-4 pt-4">
+          <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button
+              onClick={() => handleNavigate('/')}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                !isNotecards
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              Notes
+            </button>
+            <button
+              onClick={() => handleNavigate('/notecards')}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isNotecards
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
+              Notecards
+            </button>
+          </div>
+        </div>
+
+        {/* New Item Button */}
         <div className="p-4">
           <button
-            onClick={handleNewNote}
+            onClick={handleNewItem}
             disabled={isLoading}
             className="w-full flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Plus className="w-4 h-4" />
-            New Note
+            {isNotecards ? 'New Notecard' : 'New Note'}
           </button>
         </div>
 
@@ -127,7 +222,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search notes..."
+              placeholder={`Search ${isNotecards ? 'notecards' : 'notes'}...`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg 
@@ -146,13 +241,58 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           </div>
         )}
 
-        {/* Notes List */}
+        {/* Items List */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-              Loading notes...
+              Loading {isNotecards ? 'notecards' : 'notes'}...
             </div>
-          ) : filteredNotes.length === 0 ? (
+          ) : isNotecards ? (
+            /* Notecards List */
+            filteredNotecards.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                {searchQuery ? 'No notecards found' : 'No notecards yet'}
+              </div>
+            ) : (
+              <div className="space-y-1 px-2">
+                {filteredNotecards.map((notecard) => (
+                  <div
+                    key={notecard.id}
+                    className={`relative rounded-lg transition-colors group border 
+                             ${
+                               currentNotecard?.id === notecard.id
+                                 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                 : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                             }`}
+                  >
+                    <button
+                      onClick={() => handleNotecardClick(notecard)}
+                      className="w-full text-left p-3 rounded-lg"
+                    >
+                      <div className="flex items-start justify-between gap-2 pr-8">
+                        <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                          {notecard.front || 'Empty front'}
+                        </h3>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                          {formatDate(notecard.updatedAt)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
+                        {notecard.back || 'Empty back'}
+                      </p>
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteNotecard(notecard.id, e)}
+                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 rounded transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : /* Notes List */
+          filteredNotes.length === 0 ? (
             <div className="p-4 text-center text-gray-500 dark:text-gray-400">
               {searchQuery ? 'No notes found' : 'No notes yet'}
             </div>
@@ -163,11 +303,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                   key={note.id}
                   onClick={() => handleNoteClick(note)}
                   className={`w-full text-left p-3 rounded-lg transition-colors group border 
-                           ${
-                             currentNote?.id === note.id
-                               ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                               : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
-                           }`}
+                             ${
+                               currentNote?.id === note.id
+                                 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                 : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                             }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-medium text-gray-900 dark:text-white truncate">

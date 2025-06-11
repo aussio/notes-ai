@@ -2,9 +2,14 @@ import Dexie, { Table } from 'dexie';
 import type {
   Note,
   DatabaseNote,
+  Notecard,
+  DatabaseNotecard,
   NotesDatabase,
+  NotecardsDatabase,
   CreateNoteInput,
   UpdateNoteInput,
+  CreateNotecardInput,
+  UpdateNotecardInput,
   CustomElement,
   TextElement,
   ListElement,
@@ -13,6 +18,7 @@ import type {
 // Dexie database class with TypeScript integration
 class NotesDB extends Dexie {
   notes!: Table<DatabaseNote>;
+  notecards!: Table<DatabaseNotecard>;
 
   constructor() {
     super('NotesDatabase');
@@ -20,6 +26,7 @@ class NotesDB extends Dexie {
     // Define database schema
     this.version(1).stores({
       notes: 'id, title, createdAt, updatedAt', // Indexed fields
+      notecards: 'id, front, back, createdAt, updatedAt', // Indexed fields
     });
   }
 }
@@ -51,6 +58,23 @@ const deserializeNote = (dbNote: DatabaseNote): Note => ({
   content: JSON.parse(dbNote.content) as CustomElement[],
   createdAt: new Date(dbNote.createdAt),
   updatedAt: new Date(dbNote.updatedAt),
+});
+
+// Notecard serialization functions
+const serializeNotecard = (notecard: Notecard): DatabaseNotecard => ({
+  id: notecard.id,
+  front: notecard.front,
+  back: notecard.back,
+  createdAt: notecard.createdAt.toISOString(),
+  updatedAt: notecard.updatedAt.toISOString(),
+});
+
+const deserializeNotecard = (dbNotecard: DatabaseNotecard): Notecard => ({
+  id: dbNotecard.id,
+  front: dbNotecard.front,
+  back: dbNotecard.back,
+  createdAt: new Date(dbNotecard.createdAt),
+  updatedAt: new Date(dbNotecard.updatedAt),
 });
 
 // Database operations implementation
@@ -188,6 +212,117 @@ function extractTextFromSlateContent(content: CustomElement[]): string {
     })
     .join(' ');
 }
+
+// Notecard database operations
+export const notecardsDatabase: NotecardsDatabase = {
+  async getAllNotecards(): Promise<Notecard[]> {
+    try {
+      const dbNotecards = await db.notecards
+        .orderBy('updatedAt')
+        .reverse()
+        .toArray();
+      return dbNotecards.map(deserializeNotecard);
+    } catch (error) {
+      console.error('Failed to get all notecards:', error);
+      throw new Error('Failed to load notecards');
+    }
+  },
+
+  async getNotecardById(id: string): Promise<Notecard | undefined> {
+    try {
+      const dbNotecard = await db.notecards.get(id);
+      return dbNotecard ? deserializeNotecard(dbNotecard) : undefined;
+    } catch (error) {
+      console.error('Failed to get notecard by ID:', error);
+      throw new Error('Failed to load notecard');
+    }
+  },
+
+  async createNotecard(notecardInput: CreateNotecardInput): Promise<Notecard> {
+    try {
+      const now = new Date();
+      const newNotecard: Notecard = {
+        id: generateId(),
+        front: notecardInput.front,
+        back: notecardInput.back,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const dbNotecard = serializeNotecard(newNotecard);
+      await db.notecards.add(dbNotecard);
+
+      return newNotecard;
+    } catch (error) {
+      console.error('Failed to create notecard:', error);
+      throw new Error('Failed to create notecard');
+    }
+  },
+
+  async updateNotecard(
+    id: string,
+    updates: UpdateNotecardInput
+  ): Promise<Notecard> {
+    try {
+      const existingDbNotecard = await db.notecards.get(id);
+      if (!existingDbNotecard) {
+        throw new Error('Notecard not found');
+      }
+
+      const existingNotecard = deserializeNotecard(existingDbNotecard);
+      const updatedNotecard: Notecard = {
+        ...existingNotecard,
+        ...updates,
+        updatedAt: new Date(),
+      };
+
+      const dbNotecard = serializeNotecard(updatedNotecard);
+      await db.notecards.update(id, dbNotecard);
+
+      return updatedNotecard;
+    } catch (error) {
+      console.error('Failed to update notecard:', error);
+      throw new Error('Failed to update notecard');
+    }
+  },
+
+  async deleteNotecard(id: string): Promise<void> {
+    try {
+      const existingNotecard = await db.notecards.get(id);
+      if (!existingNotecard) {
+        throw new Error('Notecard not found');
+      }
+      await db.notecards.delete(id);
+    } catch (error) {
+      console.error('Failed to delete notecard:', error);
+      throw new Error('Failed to delete notecard');
+    }
+  },
+
+  async searchNotecards(query: string): Promise<Notecard[]> {
+    try {
+      if (!query.trim()) {
+        return this.getAllNotecards();
+      }
+
+      const searchTerm = query.toLowerCase();
+      const dbNotecards = await db.notecards.toArray();
+
+      const filteredNotecards = dbNotecards.filter((dbNotecard) => {
+        const frontMatch = dbNotecard.front.toLowerCase().includes(searchTerm);
+        const backMatch = dbNotecard.back.toLowerCase().includes(searchTerm);
+        return frontMatch || backMatch;
+      });
+
+      return filteredNotecards
+        .map(deserializeNotecard)
+        .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    } catch (error) {
+      console.error('Failed to search notecards:', error);
+      throw new Error('Failed to search notecards');
+    }
+  },
+};
 
 // Export database instance for advanced usage if needed
 export { db };

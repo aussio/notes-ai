@@ -1,10 +1,13 @@
-import { Editor, Element, Transforms } from 'slate';
-import type { CustomEditor, CustomElement } from '@/types';
+import { Editor, Element, Transforms, Range } from 'slate';
+import type { CustomEditor, TextElement, ListElement } from '@/types';
+
+// Types for blocks that can be toggled (excluding notecard embeds)
+type ToggleableBlockType = TextElement['type'] | ListElement['type'];
 
 // Block formatting utilities
 export const toggleBlock = (
   editor: CustomEditor,
-  format: CustomElement['type']
+  format: ToggleableBlockType
 ) => {
   const isActive = isBlockActive(editor, format);
   const isList = ['bulleted-list', 'numbered-list'].includes(format);
@@ -40,18 +43,24 @@ export const toggleBlock = (
 
 export const isBlockActive = (
   editor: CustomEditor,
-  format: CustomElement['type']
+  format: ToggleableBlockType
 ) => {
   const { selection } = editor;
-  if (!selection) return false;
+  if (!selection || !Range.isRange(selection)) return false;
 
-  const [match] = Array.from(
-    Editor.nodes(editor, {
-      at: Editor.unhangRange(editor, selection),
-      match: (n) =>
-        !Editor.isEditor(n) && Element.isElement(n) && n.type === format,
-    })
-  );
+  try {
+    const [match] = Array.from(
+      Editor.nodes(editor, {
+        at: Editor.unhangRange(editor, selection),
+        match: (n) =>
+          !Editor.isEditor(n) && Element.isElement(n) && n.type === format,
+      })
+    );
 
-  return !!match;
+    return !!match;
+  } catch (error) {
+    // If there's an error with the path, return false
+    console.warn('Error checking block active state:', error);
+    return false;
+  }
 };

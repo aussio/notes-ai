@@ -1,4 +1,4 @@
-import { Editor } from 'slate';
+import { Editor, Range } from 'slate';
 import type { CustomEditor, CustomText } from '@/types';
 
 // Text formatting utilities
@@ -19,6 +19,17 @@ export const isMarkActive = (
   editor: CustomEditor,
   format: keyof Omit<CustomText, 'text'>
 ) => {
-  const marks = Editor.marks(editor);
-  return marks ? (marks as Record<string, unknown>)[format] === true : false;
+  // Check if editor has a valid selection
+  if (!editor.selection || !Range.isRange(editor.selection)) {
+    return false;
+  }
+
+  try {
+    const marks = Editor.marks(editor);
+    return marks ? (marks as Record<string, unknown>)[format] === true : false;
+  } catch (error) {
+    // If there's an error getting marks (e.g., invalid path), return false
+    console.warn('Error checking mark active state:', error);
+    return false;
+  }
 };
