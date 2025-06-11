@@ -1,12 +1,17 @@
 import { Editor, Transforms } from 'slate';
 import type { CustomEditor, CustomElement } from '@/types';
 import { toggleBlock } from './block-formatting';
+import { insertNotecardEmbed } from './notecard-utilities';
 
 // Markdown shortcut pattern type
 export interface MarkdownShortcut {
   pattern: RegExp;
-  handler: (editor: CustomEditor, match: RegExpMatchArray) => void;
+  handler: (
+    editor: CustomEditor,
+    match: RegExpMatchArray
+  ) => Promise<void> | void;
   description: string;
+  requiresStore?: boolean; // Indicates if this shortcut needs access to store
 }
 
 // Default markdown shortcuts
@@ -41,12 +46,24 @@ export const markdownShortcuts: MarkdownShortcut[] = [
     },
     description: 'Convert 1. 2. etc. to numbered list',
   },
+
+  // Notecard embed shortcut
+  {
+    pattern: /^>>$/,
+    handler: async () => {
+      // This handler will be called with createNotecard function from the component
+      // The actual implementation is in handleMarkdownShortcuts below
+    },
+    description: 'Convert >> to notecard embed',
+    requiresStore: true,
+  },
 ];
 
 // Main markdown shortcut handler
-export const handleMarkdownShortcuts = (
+export const handleMarkdownShortcuts = async (
   editor: CustomEditor,
-  event: React.KeyboardEvent
+  event: React.KeyboardEvent,
+  createNotecard?: () => Promise<{ id: string }>
 ) => {
   if (event.key !== ' ') return false;
 
@@ -69,8 +86,23 @@ export const handleMarkdownShortcuts = (
       // Delete the markdown syntax
       Transforms.delete(editor, { at: beforeRange });
 
-      // Apply the transformation
-      shortcut.handler(editor, match);
+      // Handle notecard embed specially
+      if (shortcut.pattern.source === '^>>$') {
+        if (!createNotecard) {
+          console.warn('createNotecard function not provided for >> shortcut');
+          return false;
+        }
+        try {
+          const newNotecard = await createNotecard();
+          insertNotecardEmbed(editor, newNotecard.id);
+        } catch (error) {
+          console.error('Failed to create notecard for >> shortcut:', error);
+          return false;
+        }
+      } else {
+        // Apply the regular transformation
+        await shortcut.handler(editor, match);
+      }
       return true;
     }
   }

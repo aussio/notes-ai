@@ -33,9 +33,10 @@ export const insertNotecardEmbed = (
   }
 
   if (isInEmptyParagraph) {
-    // Delete the empty paragraph and insert the notecard
-    Transforms.delete(editor);
-    Transforms.insertNodes(editor, notecardEmbed);
+    // Replace the empty paragraph with the notecard embed
+    Transforms.setNodes(editor, notecardEmbed, {
+      match: (n) => Element.isElement(n) && n.type === 'paragraph',
+    });
   } else {
     // Insert the notecard embed normally
     Transforms.insertNodes(editor, notecardEmbed);

@@ -132,12 +132,12 @@ export const NotecardField: React.FC<NotecardFieldProps> = ({
           onChange={handleTextareaChange}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className="w-full p-2 text-sm border border-blue-300 dark:border-blue-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full p-1 text-sm border border-blue-300 dark:border-blue-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder={placeholder}
         />
       ) : (
         <div
-          className="cursor-text hover:bg-gray-50 dark:hover:bg-gray-700 p-2 rounded transition-colors"
+          className="cursor-text hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded transition-colors"
           onClick={handleFieldClick}
           title={`Click to edit ${placeholder.toLowerCase()}`}
         >

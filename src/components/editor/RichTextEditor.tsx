@@ -8,6 +8,7 @@ import Toolbar from './Toolbar';
 import RenderElement from './RenderElement';
 import RenderLeaf from './RenderLeaf';
 import { handleKeyboardShortcuts, handleMarkdownShortcuts } from '@/lib/editor';
+import { useNotecardsStore } from '@/store/notecardsStore';
 import type { CustomEditor, CustomElement } from '@/types';
 
 interface RichTextEditorProps {
@@ -45,6 +46,9 @@ export default function RichTextEditor({
     []
   );
 
+  // Access the notecard store for creating notecards
+  const { createNotecard } = useNotecardsStore();
+
   // Handle editor value changes
   const handleChange = useCallback(
     (newValue: Descendant[]) => {
@@ -53,20 +57,31 @@ export default function RichTextEditor({
     [onChange]
   );
 
+  // Create notecard function for markdown shortcuts
+  const createNotecardForShortcut = useCallback(async () => {
+    const newNotecard = await createNotecard();
+    return { id: newNotecard.id };
+  }, [createNotecard]);
+
   // Handle keyboard events
   const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
+    async (event: React.KeyboardEvent) => {
       // Handle keyboard shortcuts (Ctrl/Cmd + B, I, U)
       if (handleKeyboardShortcuts(event, editor)) {
         return;
       }
 
-      // Handle markdown shortcuts (# for headings, * for lists, etc.)
-      if (handleMarkdownShortcuts(editor, event)) {
+      // Handle markdown shortcuts (# for headings, * for lists, >> for notecards, etc.)
+      const handled = await handleMarkdownShortcuts(
+        editor,
+        event,
+        createNotecardForShortcut
+      );
+      if (handled) {
         return;
       }
     },
-    [editor]
+    [editor, createNotecardForShortcut]
   );
 
   // Ensure we have valid content

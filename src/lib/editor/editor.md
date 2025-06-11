@@ -458,14 +458,15 @@ Our list system uses **indent levels** rather than nested list structures for be
 
 ### Markdown Shortcuts
 
-| Pattern | Result        | Trigger             |
-| ------- | ------------- | ------------------- |
-| `# `    | Heading 1     | Space after #       |
-| `## `   | Heading 2     | Space after ##      |
-| `### `  | Heading 3     | Space after ###     |
-| `* `    | Bulleted list | Space after \*      |
-| `- `    | Bulleted list | Space after -       |
-| `1. `   | Numbered list | Space after number. |
+| Pattern | Result         | Trigger             |
+| ------- | -------------- | ------------------- |
+| `# `    | Heading 1      | Space after #       |
+| `## `   | Heading 2      | Space after ##      |
+| `### `  | Heading 3      | Space after ###     |
+| `* `    | Bulleted list  | Space after \*      |
+| `- `    | Bulleted list  | Space after -       |
+| `1. `   | Numbered list  | Space after number. |
+| `>> `   | Notecard embed | Space after >>      |
 
 ## Complex Behaviors
 
@@ -500,6 +501,16 @@ Markdown shortcuts are triggered on `Space` keypress and work by:
 3. **Deleting** the markdown syntax
 4. **Transforming** the element type
 5. **Preserving** the text content
+
+**Special Case - Notecard Embeds (`>>`)**:
+The notecard embed shortcut has additional complexity:
+
+1. **Creates** a new empty notecard in the database
+2. **Inserts** a notecard-embed element with the new notecard's ID
+3. **Auto-focuses** the front field for immediate editing
+4. **Enables** full tab navigation within the embedded notecard
+
+This provides a seamless workflow for capturing ideas directly within notes without breaking the writing flow.
 
 ### Notecard State Synchronization
 

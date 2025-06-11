@@ -138,9 +138,9 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
   };
 
   return (
-    <div {...attributes} className="my-2">
+    <div {...attributes} className="my-1">
       <div contentEditable={false} className="relative">
-        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
+        <div className="border border-gray-300 dark:border-gray-600 my-2 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
           {notecard ? (
             <>
               {/* Front Row */}
@@ -148,7 +148,7 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
                 value={notecard.front}
                 placeholder="Front of notecard"
                 onSave={handleSaveFront}
-                className="p-3 border-b border-gray-200 dark:border-gray-700"
+                className="p-1 border-b border-gray-200 dark:border-gray-700"
                 autoFocus={shouldAutoFocus}
                 forceEdit={focusedField === 'front'}
                 onTabNext={handleTabToBack}
@@ -161,7 +161,7 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
                 value={notecard.back}
                 placeholder="Back of notecard"
                 onSave={handleSaveBack}
-                className="p-3"
+                className="p-1"
                 forceEdit={focusedField === 'back'}
                 onTabPrevious={handleTabToFront}
                 onTabExit={handleExitNotecard}
@@ -170,7 +170,7 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
               />
             </>
           ) : (
-            <div className="p-4 text-center">
+            <div className="p-3 text-center">
               <p className="text-sm text-red-600 dark:text-red-400">
                 Notecard not found (ID: {element.notecardId})
               </p>
