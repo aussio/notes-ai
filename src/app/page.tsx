@@ -52,6 +52,13 @@ export default function Home() {
         ) : (
           <div className="flex items-center justify-center h-full p-8">
             <div className="text-center max-w-md">
+              <div className="flex items-center justify-center mb-6">
+                <img
+                  src="/teal_duck_logo.png"
+                  alt="Teal Duck Logo"
+                  className="w-16 h-16"
+                />
+              </div>
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
                 Welcome to Notes
               </h2>

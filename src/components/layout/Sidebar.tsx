@@ -165,9 +165,16 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {isNotecards ? 'Notecards' : 'Notes'}
-          </h1>
+          <div className="flex items-center gap-3">
+            <img
+              src="/teal_duck_logo.png"
+              alt="Teal Duck Logo"
+              className="w-8 h-8"
+            />
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {isNotecards ? 'Notecards' : 'Notes'}
+            </h1>
+          </div>
           <button
             onClick={onToggle}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"

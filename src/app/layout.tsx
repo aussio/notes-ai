@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Notes App',
-  description: 'A local-first note-taking application',
+  title: 'Teal Notes',
+  description:
+    'A local-first note-taking application with rich text editing and notecards',
+  icons: {
+    icon: '/teal_duck_logo.png',
+    apple: '/teal_duck_logo.png',
+  },
 };
 
 export default function RootLayout({
