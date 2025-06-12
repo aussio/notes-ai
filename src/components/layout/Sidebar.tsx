@@ -1,14 +1,20 @@
 'use client';
 
 import { Plus, Search, Menu, FileText, CreditCard, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { useNotesStore, useFilteredNotes } from '@/store/notesStore';
 import {
   useNotecardsStore,
   useFilteredNotecards,
 } from '@/store/notecardsStore';
-import { serializeToPlainText } from '@/lib/editor';
+import {
+  serializeToPlainText,
+  findNotesWithNotecardEmbeds,
+} from '@/lib/editor';
+import { DeleteNotecardModal } from '@/components/notecards/DeleteNotecardModal';
 import type { CustomElement, Notecard } from '@/types';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -28,6 +34,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     currentNote,
     isLoading: notesLoading,
     error: notesError,
+    notes,
   } = useNotesStore();
 
   // Notecards store
@@ -44,6 +51,12 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   const filteredNotes = useFilteredNotes();
   const filteredNotecards = useFilteredNotecards();
+
+  // Modal state for notecard deletion
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [notecardToDelete, setNotecardToDelete] = useState<Notecard | null>(
+    null
+  );
 
   // Determine current context
   const isNotecards = pathname === '/notecards';
@@ -87,15 +100,21 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     }
   };
 
-  const handleDeleteNotecard = async (id: string, event: React.MouseEvent) => {
+  const handleDeleteClick = (notecard: Notecard, event: React.MouseEvent) => {
     event.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this notecard?')) {
+    setNotecardToDelete(notecard);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (notecardToDelete) {
       try {
-        await deleteNotecard(id);
+        await deleteNotecard(notecardToDelete.id);
       } catch (error) {
         console.error('Failed to delete notecard:', error);
       }
     }
+    setNotecardToDelete(null);
   };
 
   const handleNavigate = (path: string) => {
@@ -166,10 +185,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            <img
+            <Image
               src="/teal_duck_logo.png"
               alt="Teal Duck Logo"
-              className="w-8 h-8"
+              width={32}
+              height={32}
             />
             <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
               {isNotecards ? 'Notecards' : 'Notes'}
@@ -289,7 +309,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                       </p>
                     </button>
                     <button
-                      onClick={(e) => handleDeleteNotecard(notecard.id, e)}
+                      onClick={(e) => handleDeleteClick(notecard, e)}
                       className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 rounded transition-colors"
                     >
                       <Trash2 className="w-3 h-3" />
@@ -333,6 +353,19 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           )}
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      <DeleteNotecardModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        notecardFront={notecardToDelete?.front || ''}
+        notesContaining={
+          notecardToDelete
+            ? findNotesWithNotecardEmbeds(notes, notecardToDelete.id)
+            : []
+        }
+      />
     </>
   );
 }

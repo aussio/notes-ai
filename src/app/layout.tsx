@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description:
     'A local-first note-taking application with rich text editing and notecards',
   icons: {
-    icon: '/teal_duck_logo.png',
+    icon: '/teal-duck.ico',
     apple: '/teal_duck_logo.png',
   },
 };

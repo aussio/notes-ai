@@ -183,18 +183,32 @@ export const handleEnterKeyPress = (
   if (customElement.type === 'heading') {
     event.preventDefault();
 
-    // Insert a new paragraph after the heading
+    // Check if cursor is at the beginning of the heading
+    const isAtStart =
+      selection.anchor.offset === 0 && selection.focus.offset === 0;
+
     const newParagraph = {
       type: 'paragraph' as const,
       children: [{ text: '' }],
     };
 
-    Transforms.insertNodes(editor, newParagraph, {
-      at: [blockPath[0] + 1],
-    });
+    if (isAtStart) {
+      // Insert paragraph before the heading and move heading down
+      Transforms.insertNodes(editor, newParagraph, {
+        at: [blockPath[0]],
+      });
 
-    // Move cursor to the new paragraph
-    Transforms.select(editor, [blockPath[0] + 1, 0]);
+      // Move cursor to the new paragraph above
+      Transforms.select(editor, [blockPath[0], 0]);
+    } else {
+      // Insert paragraph after the heading (existing behavior)
+      Transforms.insertNodes(editor, newParagraph, {
+        at: [blockPath[0] + 1],
+      });
+
+      // Move cursor to the new paragraph
+      Transforms.select(editor, [blockPath[0] + 1, 0]);
+    }
 
     return true;
   }

@@ -3,8 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { RenderElementProps, useSlateStatic, ReactEditor } from 'slate-react';
 import { Transforms, Path, Editor } from 'slate';
+import { Trash2 } from 'lucide-react';
 import { useNotecardById, useNotecardsStore } from '@/store/notecardsStore';
+import { useNotesStore } from '@/store/notesStore';
+import { findNotesWithNotecardEmbeds } from '@/lib/editor';
 import { NotecardField } from './NotecardField';
+import { DeleteNotecardModal } from './DeleteNotecardModal';
 import type { NotecardEmbedElement } from '@/types';
 
 interface NotecardEmbedProps extends RenderElementProps {
@@ -18,6 +22,7 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
   const editor = useSlateStatic();
   const { updateNotecard, loadNotecards, notecards, deleteNotecard } =
     useNotecardsStore();
+  const { notes } = useNotesStore();
   // Use the reactive selector hook for real-time updates
   const notecard = useNotecardById(element.notecardId);
   const [focusedField, setFocusedField] = useState<'front' | 'back' | null>(
@@ -25,6 +30,7 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
   );
   const [shouldAutoFocus, setShouldAutoFocus] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Load notecards if they haven't been loaded yet
   useEffect(() => {
@@ -137,9 +143,50 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!notecard) return;
+
+    try {
+      // Find the path of this notecard element before deletion
+      const notecardPath = ReactEditor.findPath(editor, element);
+
+      // Delete the notecard from the store/database
+      // This will automatically remove all embeds from all notes and clean up references
+      await deleteNotecard(notecard.id);
+
+      // Also remove the embed block from the current editor state immediately
+      Transforms.removeNodes(editor, { at: notecardPath });
+
+      // Focus the editor after deletion
+      setTimeout(() => {
+        ReactEditor.focus(editor);
+      }, 50);
+    } catch (error) {
+      console.error('Failed to delete notecard:', error);
+    }
+  };
+
+  // Find notes that contain this notecard for the modal
+  const notesContaining = notecard
+    ? findNotesWithNotecardEmbeds(notes, notecard.id)
+    : [];
+
   return (
     <div {...attributes} className="my-1">
-      <div contentEditable={false} className="relative">
+      <div contentEditable={false} className="relative group">
+        {/* Delete button - appears on hover */}
+        <button
+          onClick={handleDeleteClick}
+          className="absolute top-1 right-1 z-10 p-1 rounded-full bg-red-500 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+          title="Delete notecard permanently"
+        >
+          <Trash2 className="w-3 h-3" />
+        </button>
+
         <div className="border border-gray-300 dark:border-gray-600 my-2 rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
           {notecard ? (
             <>
@@ -181,6 +228,15 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
           )}
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      <DeleteNotecardModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        notecardFront={notecard?.front || ''}
+        notesContaining={notesContaining}
+      />
     </div>
   );
 };

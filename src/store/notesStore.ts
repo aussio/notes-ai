@@ -256,7 +256,7 @@ export const useFilteredNotes = () => {
 
 // Selector for current note title (used in header)
 export const useCurrentNoteTitle = () => {
-  return useNotesStore((state) => state.currentNote?.title ?? 'Untitled Note');
+  return useNotesStore((state) => state.currentNote?.title);
 };
 
 // Selector for saving state (used in header)

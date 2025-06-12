@@ -31,21 +31,27 @@ export default function Header({
     setEditTitle(currentNoteTitle || '');
   }, [currentNoteTitle]);
 
-  const handleTitleChange = async (newTitle: string) => {
+  const handleTitleChange = (newTitle: string) => {
+    // Only update local state, don't call onTitleChange on every keystroke
     setEditTitle(newTitle);
-    const trimmedTitle = newTitle.trim();
-    if (trimmedTitle && trimmedTitle !== currentNoteTitle && onTitleChange) {
-      await onTitleChange(trimmedTitle);
-    }
   };
 
   const handleTitleSubmit = async () => {
     setIsEditing(false);
-    // Final save on submit if needed
+    // Only save on submit if title actually changed
     const trimmedTitle = editTitle.trim();
     if (trimmedTitle && trimmedTitle !== currentNoteTitle && onTitleChange) {
       await onTitleChange(trimmedTitle || 'Untitled Note');
     }
+  };
+
+  const handleTitleBlur = async () => {
+    // Save on blur as well
+    const trimmedTitle = editTitle.trim();
+    if (trimmedTitle && trimmedTitle !== currentNoteTitle && onTitleChange) {
+      await onTitleChange(trimmedTitle || 'Untitled Note');
+    }
+    setIsEditing(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -75,7 +81,7 @@ export default function Header({
               type="text"
               value={editTitle}
               onChange={(e) => handleTitleChange(e.target.value)}
-              onBlur={handleTitleSubmit}
+              onBlur={handleTitleBlur}
               onKeyDown={handleKeyDown}
               className="text-xl font-semibold bg-transparent border-none outline-none text-gray-900 dark:text-white w-full"
               autoFocus
@@ -89,11 +95,7 @@ export default function Header({
               {currentNoteTitle}
             </h1>
           )
-        ) : (
-          <h1 className="text-xl font-semibold text-gray-500 dark:text-gray-400">
-            Select a note to begin
-          </h1>
-        )}
+        ) : null}
       </div>
 
       {/* Save status */}

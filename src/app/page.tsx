@@ -4,24 +4,32 @@ import { useEffect, useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import NoteEditor from '@/components/NoteEditor';
 import SlateDebugPanel from '@/components/editor/SlateDebugPanel';
+import { DeleteNoteModal } from '@/components/notes/DeleteNoteModal';
 import {
   useNotesStore,
   useCurrentNoteTitle,
   useIsSaving,
 } from '@/store/notesStore';
+import { CustomElement } from '@/types';
+import Image from 'next/image';
 
 export default function Home() {
   const { loadNotes, currentNote, deleteNote, updateNote } = useNotesStore();
   const currentNoteTitle = useCurrentNoteTitle();
   const isSaving = useIsSaving();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Load notes when the component mounts
   useEffect(() => {
     loadNotes();
   }, [loadNotes]);
 
-  const handleDeleteNote = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
     if (currentNote) {
       await deleteNote(currentNote.id);
     }
@@ -37,12 +45,19 @@ export default function Home() {
     setIsDebugVisible(!isDebugVisible);
   };
 
+  // Check if current note has embedded notecards
+  const hasEmbeddedNotecards = currentNote
+    ? currentNote.content.some(
+        (element: CustomElement) => element.type === 'notecard-embed'
+      )
+    : false;
+
   return (
     <>
       <MainLayout
         currentNoteTitle={currentNoteTitle}
         isSaving={isSaving}
-        onDeleteNote={handleDeleteNote}
+        onDeleteNote={handleDeleteClick}
         onTitleChange={handleTitleChange}
         onToggleDebug={handleToggleDebug}
         isDebugVisible={isDebugVisible}
@@ -53,10 +68,11 @@ export default function Home() {
           <div className="flex items-center justify-center h-full p-8">
             <div className="text-center max-w-md">
               <div className="flex items-center justify-center mb-6">
-                <img
+                <Image
                   src="/teal_duck_logo.png"
                   alt="Teal Duck Logo"
-                  className="w-16 h-16"
+                  width={64}
+                  height={64}
                 />
               </div>
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -85,6 +101,15 @@ export default function Home() {
           onClose={() => setIsDebugVisible(false)}
         />
       )}
+
+      {/* Delete confirmation modal */}
+      <DeleteNoteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        note={currentNote}
+        hasEmbeddedNotecards={hasEmbeddedNotecards}
+      />
     </>
   );
 }

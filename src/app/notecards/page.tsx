@@ -1,30 +1,38 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import MainLayout from '@/components/layout/MainLayout';
 import { NotecardEditor } from '@/components/notecards/NotecardEditor';
+import { DeleteNotecardModal } from '@/components/notecards/DeleteNotecardModal';
 import {
   useCurrentNotecard,
   useNotecardsStore,
   useIsNotecardSaving,
 } from '@/store/notecardsStore';
+import { useNotesStore } from '@/store/notesStore';
+import { findNotesWithNotecardEmbeds } from '@/lib/editor';
 
 export default function NotecardsPage() {
   const currentNotecard = useCurrentNotecard();
   const { loadNotecards, deleteNotecard, updateNotecard } = useNotecardsStore();
+  const { notes } = useNotesStore();
   const isSaving = useIsNotecardSaving();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Load notecards when the page mounts
   useEffect(() => {
     loadNotecards();
   }, [loadNotecards]);
 
-  const handleDeleteNotecard = async () => {
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
     if (currentNotecard) {
-      if (window.confirm('Are you sure you want to delete this notecard?')) {
-        await deleteNotecard(currentNotecard.id);
-      }
+      await deleteNotecard(currentNotecard.id);
     }
   };
 
@@ -42,12 +50,17 @@ export default function NotecardsPage() {
   // Get the current "title" for the header - use front text
   const currentTitle = currentNotecard?.front || undefined;
 
+  // Find notes that contain this notecard for the modal
+  const notesContaining = currentNotecard
+    ? findNotesWithNotecardEmbeds(notes, currentNotecard.id)
+    : [];
+
   return (
     <>
       <MainLayout
         currentNoteTitle={currentTitle}
         isSaving={isSaving}
-        onDeleteNote={handleDeleteNotecard}
+        onDeleteNote={handleDeleteClick}
         onTitleChange={handleTitleChange}
         onToggleDebug={handleToggleDebug}
         isDebugVisible={isDebugVisible}
@@ -58,10 +71,11 @@ export default function NotecardsPage() {
           <div className="flex items-center justify-center h-full p-8">
             <div className="text-center max-w-md">
               <div className="flex items-center justify-center mb-6">
-                <img
+                <Image
                   src="/teal_duck_logo.png"
                   alt="Teal Duck Logo"
-                  className="w-16 h-16"
+                  width={64}
+                  height={64}
                 />
               </div>
               <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
@@ -114,6 +128,15 @@ export default function NotecardsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation modal */}
+      <DeleteNotecardModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        notecardFront={currentNotecard?.front || ''}
+        notesContaining={notesContaining}
+      />
     </>
   );
 }

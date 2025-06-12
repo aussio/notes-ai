@@ -34,7 +34,7 @@ export default function NoteEditor() {
 
   return (
     <RichTextEditor
-      editorKey={`${currentNote.id}-${currentNote.updatedAt.getTime()}`} // Force re-render when note or content changes
+      editorKey={currentNote.id} // Only use note ID to prevent unnecessary re-renders
       value={content}
       onChange={handleContentChange}
       placeholder="Start writing your note..."
