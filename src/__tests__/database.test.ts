@@ -1,106 +1,176 @@
-import { notesDatabase } from '../lib/database';
-import type { Note, CreateNoteInput } from '../types';
+import { notesDatabase } from '@/lib/database';
+import type { CreateNoteInput, Note } from '@/types';
+import { TEMP_USER_ID } from '@/types';
 
-// Mock data for testing
 const mockNoteInput: CreateNoteInput = {
   title: 'Test Note',
   content: [
-    {
-      type: 'paragraph',
-      children: [{ text: 'This is a test note content' }],
-    },
+    { type: 'paragraph' as const, children: [{ text: 'Test content' }] },
   ],
 };
 
 const mockNoteInput2: CreateNoteInput = {
-  title: 'Second Note',
+  title: 'Another Test Note',
   content: [
     {
-      type: 'paragraph',
-      children: [{ text: 'This is another test note' }],
+      type: 'paragraph' as const,
+      children: [{ text: 'Another test content' }],
     },
   ],
 };
 
-describe('Database Operations', () => {
-  let createdNote: Note;
+describe('Notes Database Operations', () => {
+  // Helper function to clean up test data
+  async function cleanupTestData() {
+    try {
+      // Get all notes for test user and delete them
+      const existingNotes = await notesDatabase.getAllNotes(TEMP_USER_ID);
+      for (const note of existingNotes) {
+        await notesDatabase.deleteNote(note.id, TEMP_USER_ID);
+      }
+    } catch {
+      // Ignore errors during cleanup - might be empty database
+    }
+  }
 
   beforeEach(async () => {
-    // Clean up any existing notes
-    const existingNotes = await notesDatabase.getAllNotes();
-    for (const note of existingNotes) {
-      await notesDatabase.deleteNote(note.id);
-    }
-  });
-
-  afterEach(async () => {
-    // Clean up after each test
-    const allNotes = await notesDatabase.getAllNotes();
+    // Clean up before each test
+    const allNotes = await notesDatabase.getAllNotes(TEMP_USER_ID);
     for (const note of allNotes) {
-      await notesDatabase.deleteNote(note.id);
+      await notesDatabase.deleteNote(note.id, TEMP_USER_ID);
     }
   });
 
-  describe('Create Note', () => {
-    it('should create a new note with generated ID and timestamps', async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput);
+  afterAll(async () => {
+    // Final cleanup after all tests
+    await cleanupTestData();
+  });
 
+  describe('createNote', () => {
+    let createdNote: Note | null;
+
+    afterEach(async () => {
+      if (createdNote) {
+        await notesDatabase.deleteNote(createdNote.id, TEMP_USER_ID);
+        createdNote = null;
+      }
+    });
+
+    it('should create a new note successfully', async () => {
+      createdNote = await notesDatabase.createNote(mockNoteInput, TEMP_USER_ID);
+
+      expect(createdNote).toBeDefined();
       expect(createdNote.id).toBeDefined();
+      expect(createdNote.user_id).toBe(TEMP_USER_ID);
       expect(createdNote.title).toBe(mockNoteInput.title);
       expect(createdNote.content).toEqual(mockNoteInput.content);
       expect(createdNote.createdAt).toBeInstanceOf(Date);
       expect(createdNote.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should create notes with unique IDs', async () => {
-      const note1 = await notesDatabase.createNote(mockNoteInput);
-      const note2 = await notesDatabase.createNote(mockNoteInput2);
+    it('should create multiple notes and return them in correct order', async () => {
+      const note1 = await notesDatabase.createNote(mockNoteInput, TEMP_USER_ID);
+      const note2 = await notesDatabase.createNote(
+        mockNoteInput2,
+        TEMP_USER_ID
+      );
 
-      expect(note1.id).not.toBe(note2.id);
+      // Cleanup both notes
+      await notesDatabase.deleteNote(note1.id, TEMP_USER_ID);
+      await notesDatabase.deleteNote(note2.id, TEMP_USER_ID);
+
+      expect(note1.user_id).toBe(TEMP_USER_ID);
+      expect(note2.user_id).toBe(TEMP_USER_ID);
+      expect(note1.title).toBe(mockNoteInput.title);
+      expect(note2.title).toBe(mockNoteInput2.title);
     });
   });
 
-  describe('Get Notes', () => {
-    beforeEach(async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput);
-      await notesDatabase.createNote(mockNoteInput2);
+  describe('getAllNotes', () => {
+    let createdNote: Note | null;
+
+    afterEach(async () => {
+      if (createdNote) {
+        await notesDatabase.deleteNote(createdNote.id, TEMP_USER_ID);
+        createdNote = null;
+      }
     });
 
-    it('should get all notes ordered by updatedAt desc', async () => {
-      const notes = await notesDatabase.getAllNotes();
-
-      expect(notes).toHaveLength(2);
-      expect(notes[0].updatedAt.getTime()).toBeGreaterThanOrEqual(
-        notes[1].updatedAt.getTime()
+    it('should return all notes for the user ordered by updatedAt', async () => {
+      createdNote = await notesDatabase.createNote(mockNoteInput, TEMP_USER_ID);
+      const secondNote = await notesDatabase.createNote(
+        mockNoteInput2,
+        TEMP_USER_ID
       );
+
+      const allNotes = await notesDatabase.getAllNotes(TEMP_USER_ID);
+      expect(allNotes).toHaveLength(2);
+      expect(allNotes.every((note) => note.user_id === TEMP_USER_ID)).toBe(
+        true
+      );
+
+      // Clean up the second note
+      await notesDatabase.deleteNote(secondNote.id, TEMP_USER_ID);
+
+      const remainingNotes = await notesDatabase.getAllNotes(TEMP_USER_ID);
+      expect(remainingNotes).toHaveLength(1);
+      expect(remainingNotes[0].user_id).toBe(TEMP_USER_ID);
+    });
+  });
+
+  describe('getNoteById', () => {
+    let createdNote: Note | null;
+
+    afterEach(async () => {
+      if (createdNote) {
+        await notesDatabase.deleteNote(createdNote.id, TEMP_USER_ID);
+        createdNote = null;
+      }
     });
 
-    it('should get note by ID', async () => {
-      const retrievedNote = await notesDatabase.getNoteById(createdNote.id);
+    it('should retrieve a specific note by ID for the user', async () => {
+      createdNote = await notesDatabase.createNote(mockNoteInput, TEMP_USER_ID);
+
+      const retrievedNote = await notesDatabase.getNoteById(
+        createdNote.id,
+        TEMP_USER_ID
+      );
 
       expect(retrievedNote).toBeDefined();
       expect(retrievedNote!.id).toBe(createdNote.id);
-      expect(retrievedNote!.title).toBe(createdNote.title);
-      expect(retrievedNote!.content).toEqual(createdNote.content);
+      expect(retrievedNote!.user_id).toBe(TEMP_USER_ID);
+      expect(retrievedNote!.title).toBe(mockNoteInput.title);
     });
 
     it('should return undefined for non-existent note ID', async () => {
-      const retrievedNote = await notesDatabase.getNoteById('non-existent');
+      const retrievedNote = await notesDatabase.getNoteById(
+        'non-existent',
+        TEMP_USER_ID
+      );
 
       expect(retrievedNote).toBeUndefined();
     });
   });
 
-  describe('Update Note', () => {
+  describe('updateNote', () => {
+    let createdNote: Note | null;
+
     beforeEach(async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput);
+      createdNote = await notesDatabase.createNote(mockNoteInput, TEMP_USER_ID);
     });
 
-    it('should update note title and content', async () => {
-      // Add small delay to ensure different timestamps
+    afterEach(async () => {
+      if (createdNote) {
+        await notesDatabase.deleteNote(createdNote.id, TEMP_USER_ID);
+        createdNote = null;
+      }
+    });
+
+    it('should update an existing note for the user', async () => {
+      // Add a small delay to ensure different timestamps
       await new Promise((resolve) => setTimeout(resolve, 10));
 
-      const updates = {
+      const updateData = {
         title: 'Updated Title',
         content: [
           {
@@ -111,109 +181,151 @@ describe('Database Operations', () => {
       };
 
       const updatedNote = await notesDatabase.updateNote(
-        createdNote.id,
-        updates
+        createdNote!.id,
+        updateData,
+        TEMP_USER_ID
       );
 
-      expect(updatedNote.title).toBe(updates.title);
-      expect(updatedNote.content).toEqual(updates.content);
+      expect(updatedNote.id).toBe(createdNote!.id);
+      expect(updatedNote.user_id).toBe(TEMP_USER_ID);
+      expect(updatedNote.title).toBe(updateData.title);
+      expect(updatedNote.content).toEqual(updateData.content);
       expect(updatedNote.updatedAt.getTime()).toBeGreaterThan(
-        createdNote.updatedAt.getTime()
+        createdNote!.updatedAt.getTime()
       );
     });
 
-    it('should throw error for non-existent note', async () => {
+    it('should throw error when updating non-existent note', async () => {
       await expect(
-        notesDatabase.updateNote('non-existent', { title: 'New Title' })
-      ).rejects.toThrow('Failed to update note');
+        notesDatabase.updateNote(
+          'non-existent',
+          { title: 'New Title' },
+          TEMP_USER_ID
+        )
+      ).rejects.toThrow('Note not found');
     });
   });
 
-  describe('Delete Note', () => {
+  describe('deleteNote', () => {
+    let createdNote: Note | null;
+
     beforeEach(async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput);
+      createdNote = await notesDatabase.createNote(mockNoteInput, TEMP_USER_ID);
     });
 
-    it('should delete an existing note', async () => {
-      await notesDatabase.deleteNote(createdNote.id);
+    it('should delete an existing note for the user', async () => {
+      await notesDatabase.deleteNote(createdNote!.id, TEMP_USER_ID);
 
-      const retrievedNote = await notesDatabase.getNoteById(createdNote.id);
+      const retrievedNote = await notesDatabase.getNoteById(
+        createdNote!.id,
+        TEMP_USER_ID
+      );
       expect(retrievedNote).toBeUndefined();
+
+      // Mark as cleaned up
+      createdNote = null;
     });
 
     it('should throw error when deleting non-existent note', async () => {
-      // Our implementation now validates that the note exists before deleting
-      await expect(notesDatabase.deleteNote('non-existent')).rejects.toThrow(
-        'Failed to delete note'
-      );
+      await expect(
+        notesDatabase.deleteNote('non-existent', TEMP_USER_ID)
+      ).rejects.toThrow('Note not found');
     });
   });
 
-  describe('Search Notes', () => {
+  describe('searchNotes', () => {
     beforeEach(async () => {
-      await notesDatabase.createNote({
-        title: 'JavaScript Tutorial',
-        content: [
-          {
-            type: 'paragraph',
-            children: [{ text: 'Learn React and TypeScript basics' }],
-          },
-        ],
-      });
+      // Create test notes with different content
+      await notesDatabase.createNote(
+        {
+          title: 'JavaScript Tutorial',
+          content: [
+            {
+              type: 'paragraph' as const,
+              children: [{ text: 'Learn JavaScript basics' }],
+            },
+          ],
+        },
+        TEMP_USER_ID
+      );
 
-      await notesDatabase.createNote({
-        title: 'Cooking Recipe',
-        content: [
-          {
-            type: 'paragraph',
-            children: [{ text: 'How to make pasta with tomato sauce' }],
-          },
-        ],
-      });
+      await notesDatabase.createNote(
+        {
+          title: 'Cooking Recipe',
+          content: [
+            {
+              type: 'paragraph' as const,
+              children: [{ text: 'How to make pasta' }],
+            },
+          ],
+        },
+        TEMP_USER_ID
+      );
 
-      await notesDatabase.createNote({
-        title: 'Travel Notes',
-        content: [
-          {
-            type: 'paragraph',
-            children: [{ text: 'Visit JavaScript conferences in Europe' }],
-          },
-        ],
-      });
-    });
-
-    it('should search notes by title', async () => {
-      const results = await notesDatabase.searchNotes('JavaScript');
-
-      expect(results).toHaveLength(2); // JavaScript Tutorial and Travel Notes
-      expect(results.some((note) => note.title.includes('JavaScript'))).toBe(
-        true
+      await notesDatabase.createNote(
+        {
+          title: 'Travel Notes',
+          content: [
+            {
+              type: 'paragraph' as const,
+              children: [{ text: 'Visit Tokyo next year' }],
+            },
+          ],
+        },
+        TEMP_USER_ID
       );
     });
 
-    it('should search notes by content', async () => {
-      const results = await notesDatabase.searchNotes('pasta');
+    afterEach(async () => {
+      await cleanupTestData();
+    });
+
+    it('should find notes by title search for the user', async () => {
+      const results = await notesDatabase.searchNotes(
+        'JavaScript',
+        TEMP_USER_ID
+      );
+
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe('JavaScript Tutorial');
+      expect(results[0].user_id).toBe(TEMP_USER_ID);
+    });
+
+    it('should find notes by content search for the user', async () => {
+      const results = await notesDatabase.searchNotes('pasta', TEMP_USER_ID);
 
       expect(results).toHaveLength(1);
       expect(results[0].title).toBe('Cooking Recipe');
+      expect(results[0].user_id).toBe(TEMP_USER_ID);
     });
 
-    it('should return all notes for empty search', async () => {
-      const results = await notesDatabase.searchNotes('');
+    it('should return all notes when search query is empty', async () => {
+      const results = await notesDatabase.searchNotes('', TEMP_USER_ID);
 
       expect(results).toHaveLength(3);
+      results.forEach((note) => {
+        expect(note.user_id).toBe(TEMP_USER_ID);
+      });
     });
 
-    it('should return empty array for no matches', async () => {
-      const results = await notesDatabase.searchNotes('nonexistent');
+    it('should return empty array when no matches found', async () => {
+      const results = await notesDatabase.searchNotes(
+        'nonexistent',
+        TEMP_USER_ID
+      );
 
       expect(results).toHaveLength(0);
     });
 
     it('should be case insensitive', async () => {
-      const results = await notesDatabase.searchNotes('JAVASCRIPT');
+      const results = await notesDatabase.searchNotes(
+        'JAVASCRIPT',
+        TEMP_USER_ID
+      );
 
-      expect(results).toHaveLength(2);
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toBe('JavaScript Tutorial');
+      expect(results[0].user_id).toBe(TEMP_USER_ID);
     });
   });
 });

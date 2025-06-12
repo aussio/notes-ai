@@ -28,6 +28,39 @@ class NotesDB extends Dexie {
       notes: 'id, title, createdAt, updatedAt', // Indexed fields
       notecards: 'id, front, back, createdAt, updatedAt', // Indexed fields
     });
+
+    // Version 2: Add user_id support with indexes
+    this.version(2)
+      .stores({
+        notes:
+          'id, user_id, title, createdAt, updatedAt, [user_id+updatedAt], [id+user_id]', // Added user_id and compound indexes
+        notecards:
+          'id, user_id, front, back, createdAt, updatedAt, [user_id+updatedAt], [id+user_id]', // Added user_id and compound indexes
+      })
+      .upgrade(async (tx) => {
+        // Migration: Add user_id to existing records
+        const TEMP_USER_ID = 'dev-user-001';
+
+        // Migrate existing notes
+        await tx
+          .table('notes')
+          .toCollection()
+          .modify((note: DatabaseNote) => {
+            if (!note.user_id) {
+              note.user_id = TEMP_USER_ID;
+            }
+          });
+
+        // Migrate existing notecards
+        await tx
+          .table('notecards')
+          .toCollection()
+          .modify((notecard: DatabaseNotecard) => {
+            if (!notecard.user_id) {
+              notecard.user_id = TEMP_USER_ID;
+            }
+          });
+      });
   }
 }
 
@@ -46,6 +79,7 @@ const generateId = (): string => {
 // Utility functions for data transformation
 const serializeNote = (note: Note): DatabaseNote => ({
   id: note.id,
+  user_id: note.user_id,
   title: note.title,
   content: JSON.stringify(note.content),
   createdAt: note.createdAt.toISOString(),
@@ -54,6 +88,7 @@ const serializeNote = (note: Note): DatabaseNote => ({
 
 const deserializeNote = (dbNote: DatabaseNote): Note => ({
   id: dbNote.id,
+  user_id: dbNote.user_id,
   title: dbNote.title,
   content: JSON.parse(dbNote.content) as CustomElement[],
   createdAt: new Date(dbNote.createdAt),
@@ -63,6 +98,7 @@ const deserializeNote = (dbNote: DatabaseNote): Note => ({
 // Notecard serialization functions
 const serializeNotecard = (notecard: Notecard): DatabaseNotecard => ({
   id: notecard.id,
+  user_id: notecard.user_id,
   front: notecard.front,
   back: notecard.back,
   createdAt: notecard.createdAt.toISOString(),
@@ -71,6 +107,7 @@ const serializeNotecard = (notecard: Notecard): DatabaseNotecard => ({
 
 const deserializeNotecard = (dbNotecard: DatabaseNotecard): Notecard => ({
   id: dbNotecard.id,
+  user_id: dbNotecard.user_id,
   front: dbNotecard.front,
   back: dbNotecard.back,
   createdAt: new Date(dbNotecard.createdAt),
@@ -79,19 +116,24 @@ const deserializeNotecard = (dbNotecard: DatabaseNotecard): Notecard => ({
 
 // Database operations implementation
 export const notesDatabase: NotesDatabase = {
-  async getAllNotes(): Promise<Note[]> {
+  async getAllNotes(userId: string): Promise<Note[]> {
     try {
-      const dbNotes = await db.notes.orderBy('updatedAt').reverse().toArray();
-      return dbNotes.map(deserializeNote);
+      const dbNotes = await db.notes.where('user_id').equals(userId).toArray();
+      // Sort by updatedAt in descending order (most recent first)
+      const sortedNotes = dbNotes.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      return sortedNotes.map(deserializeNote);
     } catch (error) {
       console.error('Failed to get all notes:', error);
       throw new Error('Failed to load notes');
     }
   },
 
-  async getNoteById(id: string): Promise<Note | undefined> {
+  async getNoteById(id: string, userId: string): Promise<Note | undefined> {
     try {
-      const dbNote = await db.notes.get(id);
+      const dbNote = await db.notes.where({ id, user_id: userId }).first();
       return dbNote ? deserializeNote(dbNote) : undefined;
     } catch (error) {
       console.error('Failed to get note by ID:', error);
@@ -99,11 +141,12 @@ export const notesDatabase: NotesDatabase = {
     }
   },
 
-  async createNote(noteInput: CreateNoteInput): Promise<Note> {
+  async createNote(noteInput: CreateNoteInput, userId: string): Promise<Note> {
     try {
       const now = new Date();
       const newNote: Note = {
         id: generateId(),
+        user_id: userId,
         title: noteInput.title,
         content: noteInput.content,
         createdAt: now,
@@ -120,9 +163,15 @@ export const notesDatabase: NotesDatabase = {
     }
   },
 
-  async updateNote(id: string, updates: UpdateNoteInput): Promise<Note> {
+  async updateNote(
+    id: string,
+    updates: UpdateNoteInput,
+    userId: string
+  ): Promise<Note> {
     try {
-      const existingDbNote = await db.notes.get(id);
+      const existingDbNote = await db.notes
+        .where({ id, user_id: userId })
+        .first();
       if (!existingDbNote) {
         throw new Error('Note not found');
       }
@@ -140,31 +189,38 @@ export const notesDatabase: NotesDatabase = {
       return updatedNote;
     } catch (error) {
       console.error('Failed to update note:', error);
+      if (error instanceof Error && error.message === 'Note not found') {
+        throw error;
+      }
       throw new Error('Failed to update note');
     }
   },
 
-  async deleteNote(id: string): Promise<void> {
+  async deleteNote(id: string, userId: string): Promise<void> {
     try {
-      const existingNote = await db.notes.get(id);
-      if (!existingNote) {
+      const deletedCount = await db.notes
+        .where({ id, user_id: userId })
+        .delete();
+      if (deletedCount === 0) {
         throw new Error('Note not found');
       }
-      await db.notes.delete(id);
     } catch (error) {
       console.error('Failed to delete note:', error);
+      if (error instanceof Error && error.message === 'Note not found') {
+        throw error;
+      }
       throw new Error('Failed to delete note');
     }
   },
 
-  async searchNotes(query: string): Promise<Note[]> {
+  async searchNotes(query: string, userId: string): Promise<Note[]> {
     try {
       if (!query.trim()) {
-        return this.getAllNotes();
+        return this.getAllNotes(userId);
       }
 
       const searchTerm = query.toLowerCase();
-      const dbNotes = await db.notes.toArray();
+      const dbNotes = await db.notes.where('user_id').equals(userId).toArray();
 
       const filteredNotes = dbNotes.filter((dbNote) => {
         // Search in title
@@ -215,22 +271,32 @@ function extractTextFromSlateContent(content: CustomElement[]): string {
 
 // Notecard database operations
 export const notecardsDatabase: NotecardsDatabase = {
-  async getAllNotecards(): Promise<Notecard[]> {
+  async getAllNotecards(userId: string): Promise<Notecard[]> {
     try {
       const dbNotecards = await db.notecards
-        .orderBy('updatedAt')
-        .reverse()
+        .where('user_id')
+        .equals(userId)
         .toArray();
-      return dbNotecards.map(deserializeNotecard);
+      // Sort by updatedAt in descending order (most recent first)
+      const sortedNotecards = dbNotecards.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      return sortedNotecards.map(deserializeNotecard);
     } catch (error) {
       console.error('Failed to get all notecards:', error);
       throw new Error('Failed to load notecards');
     }
   },
 
-  async getNotecardById(id: string): Promise<Notecard | undefined> {
+  async getNotecardById(
+    id: string,
+    userId: string
+  ): Promise<Notecard | undefined> {
     try {
-      const dbNotecard = await db.notecards.get(id);
+      const dbNotecard = await db.notecards
+        .where({ id, user_id: userId })
+        .first();
       return dbNotecard ? deserializeNotecard(dbNotecard) : undefined;
     } catch (error) {
       console.error('Failed to get notecard by ID:', error);
@@ -238,11 +304,15 @@ export const notecardsDatabase: NotecardsDatabase = {
     }
   },
 
-  async createNotecard(notecardInput: CreateNotecardInput): Promise<Notecard> {
+  async createNotecard(
+    notecardInput: CreateNotecardInput,
+    userId: string
+  ): Promise<Notecard> {
     try {
       const now = new Date();
       const newNotecard: Notecard = {
         id: generateId(),
+        user_id: userId,
         front: notecardInput.front,
         back: notecardInput.back,
         createdAt: now,
@@ -261,10 +331,13 @@ export const notecardsDatabase: NotecardsDatabase = {
 
   async updateNotecard(
     id: string,
-    updates: UpdateNotecardInput
+    updates: UpdateNotecardInput,
+    userId: string
   ): Promise<Notecard> {
     try {
-      const existingDbNotecard = await db.notecards.get(id);
+      const existingDbNotecard = await db.notecards
+        .where({ id, user_id: userId })
+        .first();
       if (!existingDbNotecard) {
         throw new Error('Notecard not found');
       }
@@ -286,27 +359,31 @@ export const notecardsDatabase: NotecardsDatabase = {
     }
   },
 
-  async deleteNotecard(id: string): Promise<void> {
+  async deleteNotecard(id: string, userId: string): Promise<void> {
     try {
-      const existingNotecard = await db.notecards.get(id);
-      if (!existingNotecard) {
+      const deletedCount = await db.notecards
+        .where({ id, user_id: userId })
+        .delete();
+      if (deletedCount === 0) {
         throw new Error('Notecard not found');
       }
-      await db.notecards.delete(id);
     } catch (error) {
       console.error('Failed to delete notecard:', error);
       throw new Error('Failed to delete notecard');
     }
   },
 
-  async searchNotecards(query: string): Promise<Notecard[]> {
+  async searchNotecards(query: string, userId: string): Promise<Notecard[]> {
     try {
       if (!query.trim()) {
-        return this.getAllNotecards();
+        return this.getAllNotecards(userId);
       }
 
       const searchTerm = query.toLowerCase();
-      const dbNotecards = await db.notecards.toArray();
+      const dbNotecards = await db.notecards
+        .where('user_id')
+        .equals(userId)
+        .toArray();
 
       const filteredNotecards = dbNotecards.filter((dbNotecard) => {
         const frontMatch = dbNotecard.front.toLowerCase().includes(searchTerm);

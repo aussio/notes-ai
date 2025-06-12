@@ -12,9 +12,13 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "check-all": "npm run type-check && npm run lint && npm run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "deploy:setup": "vercel link",
+    "deploy:preview": "vercel --prod=false",
+    "deploy:production": "vercel --prod"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
     "dexie": "^4.0.11",
     "lucide-react": "^0.513.0",
     "nanoid": "^5.1.5",

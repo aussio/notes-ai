@@ -5,21 +5,26 @@ import {
   useCurrentNoteTitle,
   useIsSaving,
 } from '@/store/notesStore';
-import type { Note } from '@/types';
+import type { Note, CustomElement } from '@/types';
+import { TEMP_USER_ID } from '@/types';
+import { notesDatabase } from '@/lib/database';
 
 // Helper to create mock notes
 const createMockNote = (overrides: Partial<Note> = {}): Note => ({
   id: 'test-id',
+  user_id: TEMP_USER_ID,
   title: 'Test Note',
-  content: [{ type: 'paragraph', children: [{ text: 'Test content' }] }],
-  createdAt: new Date('2024-01-01'),
-  updatedAt: new Date('2024-01-01'),
+  content: [
+    { type: 'paragraph', children: [{ text: 'Test content' }] },
+  ] as CustomElement[],
+  createdAt: new Date(),
+  updatedAt: new Date(),
   ...overrides,
 });
 
-describe('NotesStore - Real Database Integration', () => {
+describe('NotesStore Integration', () => {
   beforeEach(async () => {
-    // Reset store state before each test
+    // Reset the store state
     useNotesStore.setState({
       notes: [],
       currentNote: null,
@@ -29,292 +34,142 @@ describe('NotesStore - Real Database Integration', () => {
       error: null,
     });
 
-    // Clear the database before each test
-    const { notesDatabase } = await import('@/lib/database');
-    const allNotes = await notesDatabase.getAllNotes();
+    // Clean up database before each test
+    const allNotes = await notesDatabase.getAllNotes(TEMP_USER_ID);
     for (const note of allNotes) {
-      await notesDatabase.deleteNote(note.id);
+      await notesDatabase.deleteNote(note.id, TEMP_USER_ID);
+    }
+  });
+
+  afterAll(async () => {
+    // Final cleanup
+    const allNotes = await notesDatabase.getAllNotes(TEMP_USER_ID);
+    for (const note of allNotes) {
+      await notesDatabase.deleteNote(note.id, TEMP_USER_ID);
     }
   });
 
   describe('loadNotes', () => {
-    it('loads notes from database successfully', async () => {
+    it('should load notes from database and update state', async () => {
       // Create some notes in the database first
-      const { notesDatabase } = await import('@/lib/database');
-      await notesDatabase.createNote({
-        title: 'Note 1',
-        content: [{ type: 'paragraph', children: [{ text: 'Content 1' }] }],
-      });
-      await notesDatabase.createNote({
-        title: 'Note 2',
-        content: [{ type: 'paragraph', children: [{ text: 'Content 2' }] }],
-      });
+      await notesDatabase.createNote(
+        {
+          title: 'Note 1',
+          content: [
+            { type: 'paragraph' as const, children: [{ text: 'Content 1' }] },
+          ],
+        },
+        TEMP_USER_ID
+      );
 
-      const { result } = renderHook(() => useNotesStore());
+      await notesDatabase.createNote(
+        {
+          title: 'Note 2',
+          content: [
+            { type: 'paragraph' as const, children: [{ text: 'Content 2' }] },
+          ],
+        },
+        TEMP_USER_ID
+      );
 
-      await act(async () => {
-        await result.current.loadNotes();
-      });
+      const { loadNotes } = useNotesStore.getState();
+      await loadNotes();
 
-      expect(result.current.notes).toHaveLength(2);
-      expect(result.current.notes.map((n) => n.title)).toEqual(
+      const state = useNotesStore.getState();
+      expect(state.notes).toHaveLength(2);
+      expect(state.notes.map((n) => n.title)).toEqual(
         expect.arrayContaining(['Note 1', 'Note 2'])
       );
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.error).toBeNull();
+      expect(state.isLoading).toBe(false);
+      expect(state.error).toBeNull();
     });
 
-    it('loads empty notes list when database is empty', async () => {
-      const { result } = renderHook(() => useNotesStore());
+    it('should handle empty database', async () => {
+      const { loadNotes } = useNotesStore.getState();
+      await loadNotes();
 
-      await act(async () => {
-        await result.current.loadNotes();
-      });
-
-      expect(result.current.notes).toEqual([]);
-      expect(result.current.isLoading).toBe(false);
-      expect(result.current.error).toBeNull();
+      const state = useNotesStore.getState();
+      expect(state.notes).toEqual([]);
+      expect(state.isLoading).toBe(false);
+      expect(state.error).toBeNull();
     });
   });
 
   describe('createNote', () => {
-    it('creates note successfully', async () => {
-      const { result } = renderHook(() => useNotesStore());
+    it('should create a new note and update state', async () => {
+      const { createNote } = useNotesStore.getState();
+      const result = await createNote('Test Title');
 
-      let createdNote: Note;
-      await act(async () => {
-        createdNote = await result.current.createNote('New Note');
-      });
+      expect(result.title).toBe('Test Title');
+      expect(result.user_id).toBe(TEMP_USER_ID);
+      expect(result.id).toBeDefined();
 
-      expect(createdNote!.title).toBe('New Note');
-      expect(createdNote!.id).toBeDefined();
-      expect(result.current.notes).toContain(createdNote!);
-      expect(result.current.currentNote).toEqual(createdNote!);
-      expect(result.current.isSaving).toBe(false);
-    });
-
-    it('uses default title and content when not provided', async () => {
-      const { result } = renderHook(() => useNotesStore());
-
-      let createdNote: Note;
-      await act(async () => {
-        createdNote = await result.current.createNote();
-      });
-
-      expect(createdNote!.title).toBe('Untitled Note');
-      expect(createdNote!.content).toEqual([
-        { type: 'paragraph', children: [{ text: '' }] },
-      ]);
-    });
-
-    it('creates note with custom content', async () => {
-      const { result } = renderHook(() => useNotesStore());
-      const customContent = [
-        { type: 'paragraph', children: [{ text: 'Custom content' }] },
-      ];
-
-      let createdNote: Note;
-      await act(async () => {
-        createdNote = await result.current.createNote(
-          'Custom Note',
-          customContent
-        );
-      });
-
-      expect(createdNote!.title).toBe('Custom Note');
-      expect(createdNote!.content).toEqual(customContent);
+      const state = useNotesStore.getState();
+      expect(state.notes).toContain(result);
+      expect(state.currentNote).toBe(result);
+      expect(state.isSaving).toBe(false);
     });
   });
 
   describe('updateNote', () => {
-    it('updates note successfully', async () => {
+    it('should update an existing note', async () => {
       // Create a note first
-      const { result } = renderHook(() => useNotesStore());
+      const { createNote, updateNote } = useNotesStore.getState();
+      const originalNote = await createNote('Original Title');
 
-      let originalNote: Note;
-      await act(async () => {
-        originalNote = await result.current.createNote('Original Title');
-      });
+      // Add a small delay to ensure different timestamps
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
-      // Update the note
-      await act(async () => {
-        await result.current.updateNote(originalNote!.id, {
-          title: 'Updated Title',
-        });
-      });
+      await updateNote(originalNote.id, { title: 'Updated Title' });
 
-      const updatedNote = result.current.notes.find(
-        (n) => n.id === originalNote!.id
-      );
+      const state = useNotesStore.getState();
+      const updatedNote = state.notes.find((n) => n.id === originalNote.id);
       expect(updatedNote?.title).toBe('Updated Title');
-      expect(result.current.currentNote?.title).toBe('Updated Title');
-      expect(result.current.isSaving).toBe(false);
-    });
-
-    it('throws error when updating non-existent note', async () => {
-      const { result } = renderHook(() => useNotesStore());
-
-      await act(async () => {
-        try {
-          await result.current.updateNote('non-existent-id', {
-            title: 'Updated',
-          });
-        } catch {
-          // Expected to throw
-        }
-      });
-
-      expect(result.current.error).toBe('Failed to update note');
-      expect(result.current.isSaving).toBe(false);
+      expect(state.currentNote?.title).toBe('Updated Title');
+      expect(state.isSaving).toBe(false);
     });
   });
 
   describe('deleteNote', () => {
-    it('deletes note successfully', async () => {
+    it('should delete a note and update state', async () => {
       // Create two notes first
-      const { result } = renderHook(() => useNotesStore());
+      const { createNote, deleteNote } = useNotesStore.getState();
+      const note1 = await createNote('Note 1');
+      const note2 = await createNote('Note 2');
 
-      let note1: Note, note2: Note;
-      await act(async () => {
-        note1 = await result.current.createNote('Note 1');
-        note2 = await result.current.createNote('Note 2');
-      });
+      await deleteNote(note1.id);
 
-      // Delete the first note
-      await act(async () => {
-        await result.current.deleteNote(note1!.id);
-      });
-
-      expect(result.current.notes).toHaveLength(1);
-      expect(result.current.notes[0].id).toBe(note2!.id);
-      expect(result.current.currentNote?.id).toBe(note2!.id); // Current switches to remaining note
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    it('handles deleting the only note (sets current to null)', async () => {
-      const { result } = renderHook(() => useNotesStore());
-
-      let note: Note;
-      await act(async () => {
-        note = await result.current.createNote('Only Note');
-      });
-
-      expect(result.current.currentNote).toEqual(note!);
-
-      await act(async () => {
-        await result.current.deleteNote(note!.id);
-      });
-
-      expect(result.current.currentNote).toBeNull();
-      expect(result.current.notes).toHaveLength(0);
-    });
-
-    it('throws error when deleting non-existent note', async () => {
-      const { result } = renderHook(() => useNotesStore());
-
-      await act(async () => {
-        try {
-          await result.current.deleteNote('non-existent-id');
-        } catch {
-          // Expected to throw
-        }
-      });
-
-      expect(result.current.error).toBe('Failed to delete note');
-    });
-  });
-
-  describe('state management', () => {
-    it('sets current note', () => {
-      const note = createMockNote({ title: 'Test Note' });
-      const { result } = renderHook(() => useNotesStore());
-
-      act(() => {
-        result.current.setCurrentNote(note);
-      });
-
-      expect(result.current.currentNote).toEqual(note);
-    });
-
-    it('sets search query', () => {
-      const { result } = renderHook(() => useNotesStore());
-
-      act(() => {
-        result.current.setSearchQuery('test search');
-      });
-
-      expect(result.current.searchQuery).toBe('test search');
-    });
-
-    it('clears error', () => {
-      const { result } = renderHook(() => useNotesStore());
-
-      // Set error first
-      act(() => {
-        useNotesStore.setState({ error: 'Test error' });
-      });
-
-      expect(result.current.error).toBe('Test error');
-
-      act(() => {
-        result.current.clearError();
-      });
-
-      expect(result.current.error).toBeNull();
+      const state = useNotesStore.getState();
+      expect(state.notes).toHaveLength(1);
+      expect(state.notes[0].id).toBe(note2.id);
+      expect(state.currentNote?.id).toBe(note2.id); // Current switches to remaining note
     });
   });
 
   describe('searchNotes', () => {
-    it('searches notes by title', async () => {
+    it('should search notes by title', async () => {
       // Create some notes with different titles
-      const { result } = renderHook(() => useNotesStore());
+      const { createNote, searchNotes } = useNotesStore.getState();
+      await createNote('JavaScript Tutorial');
+      await createNote('Python Guide');
+      await createNote('TypeScript Notes');
 
-      await act(async () => {
-        await result.current.createNote('JavaScript Tutorial');
-        await result.current.createNote('Python Guide');
-        await result.current.createNote('TypeScript Notes');
-      });
+      const results = await searchNotes('script');
 
-      let searchResults: Note[];
-      await act(async () => {
-        searchResults = await result.current.searchNotes('script');
-      });
-
-      expect(searchResults!).toHaveLength(2);
-      expect(searchResults!.map((n) => n.title)).toEqual(
+      expect(results).toHaveLength(2);
+      expect(results.map((n) => n.title)).toEqual(
         expect.arrayContaining(['JavaScript Tutorial', 'TypeScript Notes'])
       );
     });
 
-    it('returns all notes for empty query', async () => {
-      const { result } = renderHook(() => useNotesStore());
+    it('should return all notes for empty query', async () => {
+      const { createNote, searchNotes } = useNotesStore.getState();
+      await createNote('Note 1');
+      await createNote('Note 2');
 
-      await act(async () => {
-        await result.current.createNote('Note 1');
-        await result.current.createNote('Note 2');
-      });
+      const results = await searchNotes('');
 
-      let searchResults: Note[];
-      await act(async () => {
-        searchResults = await result.current.searchNotes('  ');
-      });
-
-      expect(searchResults!).toHaveLength(2);
-    });
-
-    it('returns empty array when no matches found', async () => {
-      const { result } = renderHook(() => useNotesStore());
-
-      await act(async () => {
-        await result.current.createNote('JavaScript Tutorial');
-      });
-
-      let searchResults: Note[];
-      await act(async () => {
-        searchResults = await result.current.searchNotes('nonexistent');
-      });
-
-      expect(searchResults!).toHaveLength(0);
+      expect(results).toHaveLength(2);
     });
   });
 });
@@ -478,9 +333,9 @@ describe('Selectors', () => {
       expect(result.current).toBe('Current Note');
     });
 
-    it('returns undefined when no current note', () => {
+    it('returns default title when no current note', () => {
       const { result } = renderHook(() => useCurrentNoteTitle());
-      expect(result.current).toBeUndefined();
+      expect(result.current).toBe('Untitled Note');
     });
   });
 

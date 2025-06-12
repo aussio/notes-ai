@@ -2,6 +2,10 @@ import { BaseEditor } from 'slate';
 import { ReactEditor } from 'slate-react';
 import { HistoryEditor } from 'slate-history';
 
+// Temporary user ID for single-user testing (Phase 6)
+// This will be replaced with real authentication in Phase 8
+export const TEMP_USER_ID = 'dev-user-001';
+
 // Extend Slate's types for our custom editor
 export type CustomEditor = BaseEditor & ReactEditor & HistoryEditor;
 
@@ -33,6 +37,7 @@ export interface ListElement extends BaseCustomElement {
 // Notecard interface
 export interface Notecard {
   id: string;
+  user_id: string;
   front: string;
   back: string;
   createdAt: Date;
@@ -68,6 +73,7 @@ declare module 'slate' {
 // Core Note interface - simplified from plan
 export interface Note {
   id: string;
+  user_id: string;
   title: string;
   content: CustomElement[]; // Slate.js nodes for rich text
   createdAt: Date;
@@ -77,6 +83,7 @@ export interface Note {
 // Database-related types
 export interface DatabaseNote {
   id: string;
+  user_id: string;
   title: string;
   content: string; // JSON serialized SlateJS nodes
   createdAt: string; // ISO date string for storage
@@ -85,6 +92,7 @@ export interface DatabaseNote {
 
 export interface DatabaseNotecard {
   id: string;
+  user_id: string;
   front: string;
   back: string;
   createdAt: string; // ISO date string for storage
@@ -126,43 +134,54 @@ export interface UseNotesReturn {
 
 // Database operations interface
 export interface NotesDatabase {
-  getAllNotes: () => Promise<Note[]>;
-  getNoteById: (id: string) => Promise<Note | undefined>;
-  createNote: (
-    note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>
-  ) => Promise<Note>;
+  getAllNotes: (userId: string) => Promise<Note[]>;
+  getNoteById: (id: string, userId: string) => Promise<Note | undefined>;
+  createNote: (note: CreateNoteInput, userId: string) => Promise<Note>;
   updateNote: (
     id: string,
-    updates: Partial<Omit<Note, 'id' | 'createdAt'>>
+    updates: UpdateNoteInput,
+    userId: string
   ) => Promise<Note>;
-  deleteNote: (id: string) => Promise<void>;
-  searchNotes: (query: string) => Promise<Note[]>;
+  deleteNote: (id: string, userId: string) => Promise<void>;
+  searchNotes: (query: string, userId: string) => Promise<Note[]>;
 }
 
 // Notecard database operations interface
 export interface NotecardsDatabase {
-  getAllNotecards: () => Promise<Notecard[]>;
-  getNotecardById: (id: string) => Promise<Notecard | undefined>;
+  getAllNotecards: (userId: string) => Promise<Notecard[]>;
+  getNotecardById: (
+    id: string,
+    userId: string
+  ) => Promise<Notecard | undefined>;
   createNotecard: (
-    notecard: Omit<Notecard, 'id' | 'createdAt' | 'updatedAt'>
+    notecard: CreateNotecardInput,
+    userId: string
   ) => Promise<Notecard>;
   updateNotecard: (
     id: string,
-    updates: Partial<Omit<Notecard, 'id' | 'createdAt'>>
+    updates: UpdateNotecardInput,
+    userId: string
   ) => Promise<Notecard>;
-  deleteNotecard: (id: string) => Promise<void>;
-  searchNotecards: (query: string) => Promise<Notecard[]>;
+  deleteNotecard: (id: string, userId: string) => Promise<void>;
+  searchNotecards: (query: string, userId: string) => Promise<Notecard[]>;
 }
 
-// Utility types
-export type CreateNoteInput = Omit<Note, 'id' | 'createdAt' | 'updatedAt'>;
-export type UpdateNoteInput = Partial<Omit<Note, 'id' | 'createdAt'>>;
+// Utility types - user_id is passed separately in database operations
+export type CreateNoteInput = Omit<
+  Note,
+  'id' | 'user_id' | 'createdAt' | 'updatedAt'
+>;
+export type UpdateNoteInput = Partial<
+  Omit<Note, 'id' | 'user_id' | 'createdAt'>
+>;
 
 export type CreateNotecardInput = Omit<
   Notecard,
-  'id' | 'createdAt' | 'updatedAt'
+  'id' | 'user_id' | 'createdAt' | 'updatedAt'
 >;
-export type UpdateNotecardInput = Partial<Omit<Notecard, 'id' | 'createdAt'>>;
+export type UpdateNotecardInput = Partial<
+  Omit<Notecard, 'id' | 'user_id' | 'createdAt'>
+>;
 
 // Component prop types
 export interface NoteItemProps {

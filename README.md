@@ -5,6 +5,7 @@ A modern, local-first note-taking application with rich text editing capabilitie
 ## ✨ Features
 
 ### Current Features (Phase 1 & 2 Complete)
+
 - **Rich Text Editing**: Full-featured editor powered by SlateJS
 - **Real-time Auto-save**: Notes are saved automatically as you type
 - **Offline-First**: All data stored locally using IndexedDB
@@ -15,6 +16,7 @@ A modern, local-first note-taking application with rich text editing capabilitie
 - **Modern UI**: Clean, responsive interface built with Tailwind CSS
 
 ### Coming Soon
+
 - **Search Functionality**: Full-text search across all notes
 - **Dark/Light Theme**: Theme toggle for better user experience
 - **PWA Support**: Install as a native app with offline capabilities
@@ -41,22 +43,26 @@ A modern, local-first note-taking application with rich text editing capabilitie
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd notes
    ```
 
 2. **Use correct Node.js version**
+
    ```bash
    source ~/.nvm/nvm.sh && nvm use 20
    ```
 
 3. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 4. **Start the development server**
+
    ```bash
    npm run dev
    ```
@@ -116,17 +122,20 @@ src/
 ## 🔧 Architecture Highlights
 
 ### Local-First Design
+
 - All data stored in IndexedDB for offline access
 - Real-time auto-save with no server dependency
 - Future-ready for cloud sync capabilities
 
 ### Rich Text Editor
+
 - Custom SlateJS implementation with structured content
 - Intelligent list system with indent-based hierarchy
 - Comprehensive keyboard and markdown shortcuts
 - Extensible plugin architecture
 
 ### State Management
+
 - Zustand for lightweight, performant state management
 - Async operations with optimistic updates
 - Clean separation between UI state and data persistence
@@ -135,9 +144,48 @@ src/
 
 **Phase 1 ✅ COMPLETED**: Foundation with basic CRUD operations  
 **Phase 2 ✅ COMPLETED**: Rich text editing with SlateJS  
-**Phase 3 🚧 IN PROGRESS**: Search functionality and UI polish
+**Phase 3 ✅ COMPLETED**: Search functionality and UI polish  
+**Phase 4 ✅ COMPLETED**: UI/UX enhancements and dark mode  
+**Phase 5 ✅ COMPLETED**: Notecard functionality  
+**Phase 6 ✅ COMPLETED**: Multi-user database schema migration  
+**Phase 7 🚧 IN PROGRESS**: Deployment and hosting setup
 
 See [plan.md](plan.md) for detailed phase breakdown and progress tracking.
+
+## 🚀 Deployment
+
+### Environment Variables
+
+Create a `.env.local` file with the following variables:
+
+```bash
+# Database Configuration
+DATABASE_URL=your_supabase_postgresql_url_here
+DIRECT_URL=your_supabase_direct_url_here
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# App Configuration
+NEXT_PUBLIC_APP_URL=https://teal.so
+NODE_ENV=production
+```
+
+### Vercel Deployment
+
+1. **Connect your repository** to Vercel
+2. **Configure build settings** (auto-detected from `vercel.json`)
+3. **Set environment variables** in Vercel dashboard
+4. **Deploy** - automatic deployments on git push
+
+### Supabase Setup
+
+1. **Create new project** at [supabase.com](https://supabase.com)
+2. **Run database migrations** to set up schema
+3. **Configure Row Level Security** for multi-user support
+4. **Update environment variables** with Supabase credentials
 
 ## 🤝 Contributing
 
@@ -153,4 +201,4 @@ This project is for personal use and learning purposes.
 
 ---
 
-*A modern note-taking app designed for creators who value speed, reliability, and extensibility.*
+_A modern note-taking app designed for creators who value speed, reliability, and extensibility._

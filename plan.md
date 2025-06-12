@@ -223,33 +223,143 @@ src/
 - [x] **Validation**: Prevent circular references and invalid embeds
 - [x] **Cleanup**: Handle orphaned embeds when notecards are deleted (CASCADE DELETE)
 
-### Phase 6: Advanced State Features
+### Phase 6: Database Schema Migration (User-Keyed Data) ✅ COMPLETED
 
-**Goal**: Advanced state management features and performance optimization
+**Goal**: Prepare database for multi-user support by adding user ownership to all entities
+
+#### Database Schema Changes
+
+- [x] Add `user_id` field to notes table with NOT NULL constraint
+- [x] Add `user_id` field to notecards table with NOT NULL constraint
+- [x] Update database operations to filter by user_id
+- [x] Add database indexes for user_id fields for performance
+- [x] Create database migration utilities for existing data
+- [x] Update TypeScript types to include user_id
+
+#### Application Updates
+
+- [x] Update Zustand stores to include user context
+- [x] Modify all database queries to include user_id filtering
+- [x] Update component props to handle user-scoped data
+- [x] Add temporary hardcoded user_id for single-user testing
+- [x] Test all CRUD operations with user-scoped data
+
+#### Data Migration Strategy
+
+- [x] Create migration script to assign existing notes/notecards to default user
+- [x] Backup existing local data before schema changes
+- [x] Implement rollback strategy for failed migrations
+- [x] Test migration with development data
+
+### Phase 7: Deployment & Hosting Setup
+
+**Goal**: Deploy application to production with Vercel + Supabase
+
+#### Deployment Infrastructure
+
+- [ ] **Vercel Deployment**
+  - [ ] Connect GitHub repository to Vercel
+  - [ ] Configure build settings and environment variables
+  - [ ] Set up automatic deployments on git push
+  - [ ] Configure custom domain (we own teal.so)
+  - [ ] Test production build and deployment
+
+#### Cloud Database Setup
+
+- [ ] **Supabase Project Setup**
+  - [ ] Create Supabase project
+  - [ ] Set up PostgreSQL database schema
+  - [ ] Configure Row Level Security (RLS) policies
+  - [ ] Set up database connection from Vercel
+  - [ ] Test database operations in production
+
+#### Environment Configuration
+
+- [ ] Set up environment variables for production
+- [ ] Configure CORS settings for production domains
+- [ ] Set up monitoring and error reporting
+- [ ] Configure backup and recovery procedures
+
+### Phase 8: User Authentication System
+
+**Goal**: Implement full user authentication with Supabase Auth
+
+#### Authentication Setup
+
+- [ ] **Supabase Auth Configuration**
+  - [ ] Enable email/password authentication
+  - [ ] Configure OAuth providers (Google, GitHub)
+  - [ ] Set up email templates and SMTP
+  - [ ] Configure authentication redirect URLs
+  - [ ] Test authentication flow in development
+
+#### Frontend Authentication
+
+- [ ] Install and configure Supabase Auth UI components
+- [ ] Create login/signup pages with pre-built components
+- [ ] Implement authentication state management
+- [ ] Add protected routes and navigation guards
+- [ ] Create user profile management interface
+- [ ] Implement logout functionality
+
+#### Backend Integration
+
+- [ ] Update database operations to use authenticated user_id
+- [ ] Remove hardcoded user_id from Phase 6
+- [ ] Implement Row Level Security policies for data isolation
+- [ ] Add authentication middleware for API routes
+- [ ] Test multi-user data isolation
+
+#### User Experience
+
+- [ ] Implement seamless login/logout experience
+- [ ] Add user profile display in header/sidebar
+- [ ] Create user settings page
+- [ ] Implement password reset functionality
+- [ ] Add email verification flow
+
+### Phase 9: Cloud Sync Implementation
+
+**Goal**: Enable real-time synchronization between local and cloud storage
+
+#### Hybrid Storage Architecture
+
+- [ ] Implement local-first with cloud backup strategy
+- [ ] Create conflict resolution for simultaneous edits
+- [ ] Add offline-first sync queue
+- [ ] Implement incremental sync for performance
+
+#### Real-time Features
+
+- [ ] Set up Supabase real-time subscriptions
+- [ ] Implement live updates across user sessions
+- [ ] Add collaboration features for shared notes
+- [ ] Create sync status indicators
 
 #### Advanced State Features
 
-- [ ] Optimistic updates
-- [ ] Undo/redo functionality
+- [ ] Optimistic updates with rollback
+- [ ] Undo/redo functionality across sync
 - [ ] State persistence middleware
-- [ ] Performance optimization
+- [ ] Performance optimization for large datasets
+
+### Phase 10: Advanced Features & Polish
+
+**Goal**: Advanced features and production readiness
 
 #### Advanced Storage Features
 
-- [ ] Full-text search indexing
-- [ ] Query optimization
-- [ ] Bulk operations
+- [ ] Full-text search indexing with PostgreSQL
+- [ ] Query optimization and performance tuning
+- [ ] Bulk operations and batch processing
+- [ ] Advanced filtering and sorting options
 
-### Phase 7: Cloud Preparation
+#### PWA & Offline Features
 
-**Goal**: Foundation for future cloud sync
-
-#### Sync Architecture
-
-- [ ] API layer design
-- [ ] Conflict resolution strategy
-- [ ] Offline-first sync logic
-- [ ] Event sourcing preparation
+- [ ] Service worker setup for offline functionality
+- [ ] Install prompts and PWA manifest
+- [ ] Background sync capabilities
+- [ ] Offline-first architecture refinement
 
 ## 🎯 Immediate Goals
 
@@ -273,7 +383,9 @@ src/
 - [x] Auto-save implementation (real-time on every keystroke)
 - [x] Dark/light theme toggle (Phase 3)
 - [x] **Notecards system implementation** ✅ COMPLETED
-- [ ] **NEXT: Advanced features and improvements** ← We are here
+- [x] **Database Schema Migration (Phase 6)** ✅ COMPLETED
+- [ ] **NEXT: Deployment Setup (Phase 7)** ← We are here
+- [ ] **THEN: User Authentication (Phase 8)**
 - [ ] Basic local text search
 - [ ] Polish and testing
 

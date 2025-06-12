@@ -7,19 +7,27 @@ import {
   removeNotecardEmbedsFromContent,
   findNotesWithNotecardEmbeds,
 } from '@/lib/editor';
-import type { CreateNotecardInput, UpdateNotecardInput } from '@/types';
+import type { UpdateNotecardInput, UpdateNoteInput } from '@/types';
+import { TEMP_USER_ID } from '@/types';
 
 // Create a simplified interface for the store
 const notecardsDB = {
-  getAllNotecards: () => notecardsDatabase.getAllNotecards(),
+  getAllNotecards: () => notecardsDatabase.getAllNotecards(TEMP_USER_ID),
   createNotecard: (front: string, back: string) =>
-    notecardsDatabase.createNotecard({ front, back } as CreateNotecardInput),
-  updateNotecard: (
-    id: string,
-    updates: Partial<Omit<Notecard, 'id' | 'createdAt'>>
-  ) => notecardsDatabase.updateNotecard(id, updates as UpdateNotecardInput),
-  deleteNotecard: (id: string) => notecardsDatabase.deleteNotecard(id),
-  searchNotecards: (query: string) => notecardsDatabase.searchNotecards(query),
+    notecardsDatabase.createNotecard({ front, back }, TEMP_USER_ID),
+  updateNotecard: (id: string, updates: UpdateNotecardInput) =>
+    notecardsDatabase.updateNotecard(id, updates, TEMP_USER_ID),
+  deleteNotecard: (id: string) =>
+    notecardsDatabase.deleteNotecard(id, TEMP_USER_ID),
+  searchNotecards: (query: string) =>
+    notecardsDatabase.searchNotecards(query, TEMP_USER_ID),
+};
+
+// Create a simplified interface for notes DB operations used in cleanup
+const notesDB = {
+  getAllNotes: () => notesDatabase.getAllNotes(TEMP_USER_ID),
+  updateNote: (id: string, updates: UpdateNoteInput) =>
+    notesDatabase.updateNote(id, updates, TEMP_USER_ID),
 };
 
 // Callback to notify notes store when notes are updated due to notecard changes
@@ -45,7 +53,7 @@ interface NotecardsState {
   createNotecard: (front?: string, back?: string) => Promise<Notecard>;
   updateNotecard: (
     id: string,
-    updates: Partial<Omit<Notecard, 'id' | 'createdAt'>>
+    updates: Partial<Omit<Notecard, 'id' | 'createdAt' | 'user_id'>>
   ) => Promise<void>;
   deleteNotecard: (id: string) => Promise<void>;
   setCurrentNotecard: (notecard: Notecard | null) => void;
@@ -105,7 +113,7 @@ export const useNotecardsStore = create<NotecardsState>()(
 
       updateNotecard: async (
         id: string,
-        updates: Partial<Omit<Notecard, 'id' | 'createdAt'>>
+        updates: Partial<Omit<Notecard, 'id' | 'createdAt' | 'user_id'>>
       ) => {
         set({ isSaving: true, error: null });
         try {
@@ -136,7 +144,7 @@ export const useNotecardsStore = create<NotecardsState>()(
         set({ isLoading: true, error: null });
         try {
           // First, find all notes that contain embeds for this notecard
-          const allNotes = await notesDatabase.getAllNotes();
+          const allNotes = await notesDB.getAllNotes();
           const notesWithEmbeds = findNotesWithNotecardEmbeds(allNotes, id);
 
           // Remove the notecard embeds from affected notes
@@ -146,7 +154,7 @@ export const useNotecardsStore = create<NotecardsState>()(
               note.content,
               id
             );
-            await notesDatabase.updateNote(note.id, {
+            await notesDB.updateNote(note.id, {
               content: updatedContent,
             });
             affectedNoteIds.push(note.id);
@@ -220,53 +228,43 @@ export const useNotecardsStore = create<NotecardsState>()(
         set({ error: null });
       },
 
+      // Utility function for getting notecard by ID (used by embed components)
       getNotecardById: (id: string) => {
         const { notecards } = get();
         return notecards.find((notecard) => notecard.id === id);
       },
-    })),
-    {
-      name: 'notecards-store', // For Redux DevTools
-    }
+    }))
   )
 );
 
-// Computed selectors for better performance
+// Selector hooks for optimized re-renders
 export const useFilteredNotecards = () => {
-  const notecards = useNotecardsStore((state) => state.notecards);
-  const searchQuery = useNotecardsStore((state) => state.searchQuery);
+  return useNotecardsStore((state) => {
+    const { notecards, searchQuery } = state;
 
-  let filteredNotecards = notecards;
+    if (!searchQuery.trim()) {
+      return notecards;
+    }
 
-  if (searchQuery.trim()) {
     const query = searchQuery.toLowerCase();
-    filteredNotecards = notecards.filter(
+    return notecards.filter(
       (notecard) =>
         notecard.front.toLowerCase().includes(query) ||
         notecard.back.toLowerCase().includes(query)
     );
-  }
-
-  // Sort by updatedAt descending (most recently edited first)
-  return filteredNotecards.sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
+  });
 };
 
-// Selector for current notecard (used in notecard views)
 export const useCurrentNotecard = () => {
   return useNotecardsStore((state) => state.currentNotecard);
 };
 
-// Selector for saving state (used in notecard editor)
 export const useIsNotecardSaving = () => {
   return useNotecardsStore((state) => state.isSaving);
 };
 
-// Selector for a specific notecard by ID (used in embeds for real-time sync)
 export const useNotecardById = (id: string) => {
-  return useNotecardsStore((state) => {
-    const notecard = state.notecards.find((notecard) => notecard.id === id);
-    return notecard;
-  });
+  return useNotecardsStore((state) =>
+    state.notecards.find((notecard) => notecard.id === id)
+  );
 };

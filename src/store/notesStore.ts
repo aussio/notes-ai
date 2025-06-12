@@ -4,17 +4,23 @@ import { devtools } from 'zustand/middleware';
 import type { Note } from '@/types';
 import { notesDatabase } from '@/lib/database';
 import type { CreateNoteInput, UpdateNoteInput } from '@/types';
+import { TEMP_USER_ID } from '@/types';
 import { setNotesStoreUpdateCallback } from './notecardsStore';
 
 // Create a simplified interface for the store
 const notesDB = {
-  getAllNotes: () => notesDatabase.getAllNotes(),
+  getAllNotes: () => notesDatabase.getAllNotes(TEMP_USER_ID),
   createNote: (title: string, content: unknown[]) =>
-    notesDatabase.createNote({ title, content } as CreateNoteInput),
-  updateNote: (id: string, updates: Partial<Omit<Note, 'id' | 'createdAt'>>) =>
-    notesDatabase.updateNote(id, updates as UpdateNoteInput),
-  deleteNote: (id: string) => notesDatabase.deleteNote(id),
-  searchNotes: (query: string) => notesDatabase.searchNotes(query),
+    notesDatabase.createNote(
+      { title, content } as CreateNoteInput,
+      TEMP_USER_ID
+    ),
+  updateNote: (id: string, updates: UpdateNoteInput) =>
+    notesDatabase.updateNote(id, updates, TEMP_USER_ID),
+  deleteNote: (id: string) => notesDatabase.deleteNote(id, TEMP_USER_ID),
+  searchNotes: (query: string) =>
+    notesDatabase.searchNotes(query, TEMP_USER_ID),
+  getNoteById: (id: string) => notesDatabase.getNoteById(id, TEMP_USER_ID),
 };
 
 interface NotesState {
@@ -31,7 +37,7 @@ interface NotesState {
   createNote: (title?: string, content?: unknown[]) => Promise<Note>;
   updateNote: (
     id: string,
-    updates: Partial<Omit<Note, 'id' | 'createdAt'>>
+    updates: Partial<Omit<Note, 'id' | 'createdAt' | 'user_id'>>
   ) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   setCurrentNote: (note: Note | null) => void;
@@ -94,7 +100,7 @@ export const useNotesStore = create<NotesState>()(
 
       updateNote: async (
         id: string,
-        updates: Partial<Omit<Note, 'id' | 'createdAt'>>
+        updates: Partial<Omit<Note, 'id' | 'createdAt' | 'user_id'>>
       ) => {
         set({ isSaving: true, error: null });
         try {
@@ -184,7 +190,7 @@ export const useNotesStore = create<NotesState>()(
 
           for (const noteId of noteIds) {
             // Get fresh note from database
-            const freshNote = await notesDatabase.getNoteById(noteId);
+            const freshNote = await notesDB.getNoteById(noteId);
             if (freshNote) {
               // Update in the notes array
               const noteIndex = updatedNotes.findIndex(
@@ -250,7 +256,7 @@ export const useFilteredNotes = () => {
 
 // Selector for current note title (used in header)
 export const useCurrentNoteTitle = () => {
-  return useNotesStore((state) => state.currentNote?.title);
+  return useNotesStore((state) => state.currentNote?.title ?? 'Untitled Note');
 };
 
 // Selector for saving state (used in header)
