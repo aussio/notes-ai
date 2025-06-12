@@ -65,10 +65,6 @@ export default function Home() {
                   internet connection required!
                 </p>
               </div>
-              <div className="mt-6 text-xs text-gray-400 dark:text-gray-600">
-                🚀 Deployed via GitHub Actions • Build:{' '}
-                {new Date().toISOString().split('T')[0]}
-              </div>
             </div>
           </div>
         )}
