@@ -4,6 +4,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 
+// Force dynamic rendering to avoid prerendering during build
+export const dynamic = 'force-dynamic';
+
 export default function AuthCallback() {
   const router = useRouter();
 

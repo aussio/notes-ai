@@ -5,13 +5,23 @@ import { useRouter } from 'next/navigation';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/lib/supabase';
-import { useIsAuthenticated, useAuthInitialized } from '@/store/authStore';
+import {
+  useAuthStore,
+  useIsAuthenticated,
+  useAuthInitialized,
+} from '@/store/authStore';
 import Image from 'next/image';
 
 export default function AuthPage() {
   const router = useRouter();
   const isAuthenticated = useIsAuthenticated();
   const isInitialized = useAuthInitialized();
+  const { initialize } = useAuthStore();
+
+  // Initialize auth store on mount
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
 
   // Redirect if already authenticated
   useEffect(() => {
