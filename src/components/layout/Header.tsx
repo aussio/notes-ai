@@ -1,8 +1,11 @@
 'use client';
 
-import { Menu, MoreVertical, Save, Trash2, Bug } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Menu, Save, Trash2, Bug, User, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import UserAvatar from '@/components/auth/UserAvatar';
+import { useUser } from '@/store/authStore';
 
 interface HeaderProps {
   onToggleSidebar: () => void;
@@ -17,134 +20,188 @@ interface HeaderProps {
 export default function Header({
   onToggleSidebar,
   currentNoteTitle,
-  isSaving = false,
+  isSaving,
   onDelete,
   onTitleChange,
   onToggleDebug,
-  isDebugVisible = false,
+  isDebugVisible,
 }: HeaderProps) {
+  const router = useRouter();
+  const user = useUser();
   const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
+  const [title, setTitle] = useState(currentNoteTitle || '');
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Sync edit title with current note title when it changes
+  // Update local title when prop changes
   useEffect(() => {
-    setEditTitle(currentNoteTitle || '');
+    setTitle(currentNoteTitle || '');
   }, [currentNoteTitle]);
 
-  const handleTitleChange = (newTitle: string) => {
-    // Only update local state, don't call onTitleChange on every keystroke
-    setEditTitle(newTitle);
-  };
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
 
-  const handleTitleSubmit = async () => {
-    setIsEditing(false);
-    // Only save on submit if title actually changed
-    const trimmedTitle = editTitle.trim();
-    if (trimmedTitle && trimmedTitle !== currentNoteTitle && onTitleChange) {
-      await onTitleChange(trimmedTitle || 'Untitled Note');
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleTitleSubmit = () => {
+    if (onTitleChange && title.trim()) {
+      onTitleChange(title.trim());
     }
-  };
-
-  const handleTitleBlur = async () => {
-    // Save on blur as well
-    const trimmedTitle = editTitle.trim();
-    if (trimmedTitle && trimmedTitle !== currentNoteTitle && onTitleChange) {
-      await onTitleChange(trimmedTitle || 'Untitled Note');
-    }
     setIsEditing(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleTitleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleTitleSubmit();
     } else if (e.key === 'Escape') {
-      setEditTitle(currentNoteTitle || '');
+      setTitle(currentNoteTitle || '');
       setIsEditing(false);
     }
   };
 
+  const handleUserMenuClick = () => {
+    setShowUserMenu(!showUserMenu);
+  };
+
+  const handleProfileClick = () => {
+    router.push('/profile');
+    setShowUserMenu(false);
+  };
+
   return (
-    <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
-      {/* Mobile menu button */}
-      <button
-        onClick={onToggleSidebar}
-        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden mr-2"
-      >
-        <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-      </button>
-
-      {/* Current note title */}
-      <div className="flex-1 min-w-0">
-        {currentNoteTitle ? (
-          isEditing ? (
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => handleTitleChange(e.target.value)}
-              onBlur={handleTitleBlur}
-              onKeyDown={handleKeyDown}
-              className="text-xl font-semibold bg-transparent border-none outline-none text-gray-900 dark:text-white w-full"
-              autoFocus
-            />
-          ) : (
-            <h1
-              className="text-xl font-semibold text-gray-900 dark:text-white truncate cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded px-2 py-1 -mx-2 -my-1"
-              onClick={() => setIsEditing(true)}
-              title="Click to edit title"
-            >
-              {currentNoteTitle}
-            </h1>
-          )
-        ) : null}
-      </div>
-
-      {/* Save status */}
-      {isSaving && (
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mr-4">
-          <Save className="w-4 h-4 animate-pulse" />
-          Saving...
-        </div>
-      )}
-
-      {/* Actions menu */}
-      <div className="flex items-center gap-2">
-        {/* Theme toggle */}
-        <ThemeToggle />
-
-        {/* Debug button - always visible in development */}
-        {process.env.NODE_ENV === 'development' && onToggleDebug && (
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+      <div className="flex items-center justify-between">
+        {/* Left side */}
+        <div className="flex items-center gap-4">
           <button
-            onClick={onToggleDebug}
-            className={`p-2 rounded-lg transition-colors ${
-              isDebugVisible
-                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
-            }`}
-            title="Toggle Slate debug panel"
+            onClick={onToggleSidebar}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"
+            aria-label="Toggle sidebar"
           >
-            <Bug className="w-4 h-4" />
+            <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
-        )}
 
-        {/* Note-specific actions */}
-        {currentNoteTitle && (
-          <>
+          {/* Title editing */}
+          <div className="flex items-center gap-2">
+            {isEditing ? (
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleTitleSubmit}
+                onKeyDown={handleTitleKeyPress}
+                className="text-lg font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none text-gray-900 dark:text-white"
+                autoFocus
+              />
+            ) : (
+              <h1
+                onClick={() => setIsEditing(true)}
+                className="text-lg font-semibold text-gray-900 dark:text-white cursor-text hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                title="Click to edit title"
+              >
+                {currentNoteTitle || 'Untitled'}
+              </h1>
+            )}
+
+            {isSaving && (
+              <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                <Save className="w-4 h-4 animate-pulse" />
+                Saving...
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right side */}
+        <div className="flex items-center gap-2">
+          {/* Debug toggle */}
+          {onToggleDebug && (
+            <button
+              onClick={onToggleDebug}
+              className={`p-2 rounded-lg transition-colors ${
+                isDebugVisible
+                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
+              }`}
+              title="Toggle debug panel"
+            >
+              <Bug className="w-5 h-5" />
+            </button>
+          )}
+
+          {/* Delete button */}
+          {onDelete && (
             <button
               onClick={onDelete}
-              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-              title="Delete note"
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              title="Delete current item"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-5 h-5" />
             </button>
+          )}
 
-            <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
-              title="More options"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-          </>
-        )}
+          {/* User menu - rightmost */}
+          {user && (
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={handleUserMenuClick}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
+              >
+                <UserAvatar user={user} size="md" />
+                <span className="hidden sm:block text-sm font-medium text-gray-900 dark:text-white">
+                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+
+              {/* Dropdown menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3">
+                      <UserAvatar user={user} size="lg" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {user.user_metadata?.full_name ||
+                            user.email?.split('@')[0]}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleProfileClick}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    Profile & Settings
+                  </button>
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                  <div className="px-4 py-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Theme
+                      </span>
+                      <ThemeToggle />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

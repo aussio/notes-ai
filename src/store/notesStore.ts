@@ -2,25 +2,25 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
 import type { Note } from '@/types';
-import { notesDatabase } from '@/lib/database';
+import { notesDB } from '@/lib/database-adapter';
 import type { CreateNoteInput, UpdateNoteInput } from '@/types';
-import { TEMP_USER_ID } from '@/types';
-import { setNotesStoreUpdateCallback } from './notecardsStore';
+import { useAuthStore } from '@/store/authStore';
+import {
+  useNotecardsStore,
+  setNotesStoreUpdateCallback,
+} from '@/store/notecardsStore';
 
 // Create a simplified interface for the store
-const notesDB = {
-  getAllNotes: () => notesDatabase.getAllNotes(TEMP_USER_ID),
-  createNote: (title: string, content: unknown[]) =>
-    notesDatabase.createNote(
-      { title, content } as CreateNoteInput,
-      TEMP_USER_ID
-    ),
-  updateNote: (id: string, updates: UpdateNoteInput) =>
-    notesDatabase.updateNote(id, updates, TEMP_USER_ID),
-  deleteNote: (id: string) => notesDatabase.deleteNote(id, TEMP_USER_ID),
-  searchNotes: (query: string) =>
-    notesDatabase.searchNotes(query, TEMP_USER_ID),
-  getNoteById: (id: string) => notesDatabase.getNoteById(id, TEMP_USER_ID),
+const notesDatabase = {
+  getAllNotes: (userId: string) => notesDB.getAllNotes(userId),
+  createNote: (title: string, content: unknown[], userId: string) =>
+    notesDB.createNote({ title, content } as CreateNoteInput, userId),
+  updateNote: (id: string, updates: UpdateNoteInput, userId: string) =>
+    notesDB.updateNote(id, updates, userId),
+  deleteNote: (id: string, userId: string) => notesDB.deleteNote(id, userId),
+  searchNotes: (query: string, userId: string) =>
+    notesDB.searchNotes(query, userId),
+  getNoteById: (id: string, userId: string) => notesDB.getNoteById(id, userId),
 };
 
 interface NotesState {
@@ -59,28 +59,56 @@ export const useNotesStore = create<NotesState>()(
       isSaving: false,
       error: null,
 
-      // Actions
+      // Load all notes for the current user
       loadNotes: async () => {
+        const authState = useAuthStore.getState();
+
+        // Don't load if auth is not initialized yet
+        if (!authState.isInitialized) {
+          return;
+        }
+
+        // Clear any previous auth errors when auth state changes
+        if (authState.user) {
+          set({ error: null });
+        }
+
+        if (!authState.user) {
+          set({ error: 'User not authenticated', isLoading: false });
+          return;
+        }
+
         set({ isLoading: true, error: null });
         try {
-          const notes = await notesDB.getAllNotes();
+          const notes = await notesDatabase.getAllNotes(authState.user.id);
           set({ notes, isLoading: false });
         } catch (error) {
           console.error('Failed to load notes:', error);
           set({
-            error: 'Failed to load notes',
+            error:
+              error instanceof Error ? error.message : 'Failed to load notes',
             isLoading: false,
           });
         }
       },
 
+      // Create a new note
       createNote: async (
-        title = 'Untitled Note',
+        title = 'Untitled',
         content = [{ type: 'paragraph', children: [{ text: '' }] }]
       ) => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
         set({ isSaving: true, error: null });
         try {
-          const newNote = await notesDB.createNote(title, content);
+          const newNote = await notesDatabase.createNote(
+            title,
+            content,
+            user.id
+          );
           const { notes } = get();
           set({
             notes: [newNote, ...notes],
@@ -91,53 +119,69 @@ export const useNotesStore = create<NotesState>()(
         } catch (error) {
           console.error('Failed to create note:', error);
           set({
-            error: 'Failed to create note',
+            error:
+              error instanceof Error ? error.message : 'Failed to create note',
             isSaving: false,
           });
           throw error;
         }
       },
 
-      updateNote: async (
-        id: string,
-        updates: Partial<Omit<Note, 'id' | 'createdAt' | 'user_id'>>
-      ) => {
+      // Update an existing note
+      updateNote: async (id, updates) => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
         set({ isSaving: true, error: null });
         try {
-          const updatedNote = await notesDB.updateNote(id, updates);
+          const updatedNote = await notesDatabase.updateNote(
+            id,
+            updates,
+            user.id
+          );
           const { notes, currentNote } = get();
 
           const updatedNotes = notes.map((note) =>
             note.id === id ? updatedNote : note
           );
 
+          // Sort by updatedAt to keep most recent first
+          const sortedNotes = updatedNotes.sort(
+            (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+          );
+
           set({
-            notes: updatedNotes,
+            notes: sortedNotes,
             currentNote: currentNote?.id === id ? updatedNote : currentNote,
             isSaving: false,
           });
         } catch (error) {
           console.error('Failed to update note:', error);
           set({
-            error: 'Failed to update note',
+            error:
+              error instanceof Error ? error.message : 'Failed to update note',
             isSaving: false,
           });
           throw error;
         }
       },
 
-      deleteNote: async (id: string) => {
+      // Delete a note
+      deleteNote: async (id) => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
         set({ isLoading: true, error: null });
         try {
-          await notesDB.deleteNote(id);
+          await notesDatabase.deleteNote(id, user.id);
           const { notes, currentNote } = get();
 
           const filteredNotes = notes.filter((note) => note.id !== id);
-          // If we deleted the current note, set current to the most recent remaining note
-          let newCurrentNote = currentNote;
-          if (currentNote?.id === id) {
-            newCurrentNote = filteredNotes.length > 0 ? filteredNotes[0] : null;
-          }
+          const newCurrentNote = currentNote?.id === id ? null : currentNote;
 
           set({
             notes: filteredNotes,
@@ -147,119 +191,138 @@ export const useNotesStore = create<NotesState>()(
         } catch (error) {
           console.error('Failed to delete note:', error);
           set({
-            error: 'Failed to delete note',
+            error:
+              error instanceof Error ? error.message : 'Failed to delete note',
             isLoading: false,
           });
           throw error;
         }
       },
 
-      setCurrentNote: (note: Note | null) => {
-        set({ currentNote: note });
-      },
+      // Set the current active note
+      setCurrentNote: (note) => set({ currentNote: note }),
 
-      setSearchQuery: (query: string) => {
-        set({ searchQuery: query });
-      },
+      // Set search query
+      setSearchQuery: (query) => set({ searchQuery: query }),
 
-      searchNotes: async (query: string) => {
-        if (!query.trim()) {
-          return get().notes;
+      // Search notes
+      searchNotes: async (query) => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
         }
 
         try {
-          const results = await notesDB.searchNotes(query);
+          const results = await notesDatabase.searchNotes(query, user.id);
           return results;
         } catch (error) {
           console.error('Failed to search notes:', error);
-          set({ error: 'Failed to search notes' });
-          return [];
+          throw error;
         }
       },
 
-      clearError: () => {
-        set({ error: null });
-      },
+      // Clear error state
+      clearError: () => set({ error: null }),
 
-      // Internal method to refresh specific notes from database
-      refreshNotes: async (noteIds: string[]) => {
-        try {
-          const { notes, currentNote } = get();
-          const updatedNotes = [...notes];
-          let updatedCurrentNote = currentNote;
+      // Refresh specific notes (used by notecard store for updates)
+      refreshNotes: async (noteIds) => {
+        const user = useAuthStore.getState().user;
+        if (!user) return;
 
-          for (const noteId of noteIds) {
-            // Get fresh note from database
-            const freshNote = await notesDB.getNoteById(noteId);
-            if (freshNote) {
-              // Update in the notes array
-              const noteIndex = updatedNotes.findIndex(
-                (note) => note.id === noteId
-              );
-              if (noteIndex !== -1) {
-                updatedNotes[noteIndex] = freshNote;
-              }
+        const { notes } = get();
+        const updatedNotes = [...notes];
 
-              // Update current note if it's the one being refreshed
-              if (currentNote?.id === noteId) {
-                updatedCurrentNote = freshNote;
-              }
+        for (const noteId of noteIds) {
+          // Get fresh note from database
+          const freshNote = await notesDatabase.getNoteById(noteId, user.id);
+          if (freshNote) {
+            // Update in the notes array
+            const index = updatedNotes.findIndex((n) => n.id === noteId);
+            if (index !== -1) {
+              updatedNotes[index] = freshNote;
             }
           }
-
-          set({
-            notes: updatedNotes,
-            currentNote: updatedCurrentNote,
-          });
-        } catch (error) {
-          console.error('Failed to refresh notes:', error);
         }
+
+        // Sort by updatedAt to keep most recent first
+        const sortedNotes = updatedNotes.sort(
+          (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+        );
+
+        set({ notes: sortedNotes });
       },
     })),
-    {
-      name: 'notes-store', // For Redux DevTools
-    }
+    { name: 'notes-store' }
   )
 );
 
-// Set up the callback for notecard store to notify when notes need updating
-if (typeof window !== 'undefined') {
-  // Only register on client side
-  const store = useNotesStore.getState();
-  setNotesStoreUpdateCallback((affectedNoteIds: string[]) => {
-    store.refreshNotes(affectedNoteIds);
-  });
-}
+// Set up auth state subscription to automatically load notes when user becomes authenticated
+useAuthStore.subscribe(
+  (state) => ({ user: state.user, isInitialized: state.isInitialized }),
+  (authState, prevAuthState) => {
+    const notesStore = useNotesStore.getState();
 
-// Computed selectors for better performance
+    // If user just became authenticated or auth just became initialized with a user
+    if (
+      authState.isInitialized &&
+      authState.user &&
+      (!prevAuthState.isInitialized ||
+        !prevAuthState.user ||
+        prevAuthState.user.id !== authState.user.id)
+    ) {
+      // Automatically load notes (only if not already loaded)
+      if (notesStore.notes.length === 0 && !notesStore.isLoading) {
+        notesStore.loadNotes();
+      }
+
+      // Also trigger notecards loading for fast view switching
+      const notecardsStore = useNotecardsStore.getState();
+      if (notecardsStore.notecards.length === 0 && !notecardsStore.isLoading) {
+        notecardsStore.loadNotecards();
+      }
+    }
+
+    // If user logged out, clear notes and errors
+    if (prevAuthState.user && !authState.user) {
+      useNotesStore.setState({
+        notes: [],
+        currentNote: null,
+        error: null,
+      });
+    }
+  }
+);
+
+// Set up callback for notecards store
+setNotesStoreUpdateCallback((affectedNoteIds: string[]) => {
+  const store = useNotesStore.getState();
+  store.refreshNotes(affectedNoteIds);
+});
+
+// Selectors for easier consumption
+export const useCurrentNote = () => useNotesStore((state) => state.currentNote);
+export const useNotes = () => useNotesStore((state) => state.notes);
+export const useCurrentNoteTitle = () =>
+  useNotesStore((state) => state.currentNote?.title);
+export const useIsLoading = () => useNotesStore((state) => state.isLoading);
+export const useIsSaving = () => useNotesStore((state) => state.isSaving);
+export const useNotesError = () => useNotesStore((state) => state.error);
+
+// Filtered notes selector for backward compatibility
 export const useFilteredNotes = () => {
   const notes = useNotesStore((state) => state.notes);
   const searchQuery = useNotesStore((state) => state.searchQuery);
 
-  let filteredNotes = notes;
-
-  if (searchQuery.trim()) {
-    const query = searchQuery.toLowerCase();
-    filteredNotes = notes.filter(
-      (note) =>
-        note.title.toLowerCase().includes(query) ||
-        // Simple content search - could be enhanced with full-text search
-        JSON.stringify(note.content).toLowerCase().includes(query)
-    );
+  if (!searchQuery.trim()) {
+    return notes;
   }
 
-  // Sort by updatedAt descending (most recently edited first)
-  return filteredNotes.sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  );
-};
-
-// Selector for current note title (used in header)
-export const useCurrentNoteTitle = () => {
-  return useNotesStore((state) => state.currentNote?.title);
-};
-
-// Selector for saving state (used in header)
-export const useIsSaving = () => {
-  return useNotesStore((state) => state.isSaving);
+  const query = searchQuery.toLowerCase();
+  return notes.filter((note) => {
+    const titleMatch = note.title.toLowerCase().includes(query);
+    const contentMatch = JSON.stringify(note.content)
+      .toLowerCase()
+      .includes(query);
+    return titleMatch || contentMatch;
+  });
 };

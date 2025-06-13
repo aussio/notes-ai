@@ -15,7 +15,12 @@ const customJestConfig = {
         '!src/**/*.d.ts',
         '!src/types/**/*',
     ],
-
+    transformIgnorePatterns: [
+        'node_modules/(?!(@supabase|@babel|uuid|postgres|query-string|decode-uri-component|strict-uri-encode|split-on-first|filter-obj)/)',
+    ],
+    moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+    },
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

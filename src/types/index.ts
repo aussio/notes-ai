@@ -2,10 +2,6 @@ import { BaseEditor } from 'slate';
 import { ReactEditor } from 'slate-react';
 import { HistoryEditor } from 'slate-history';
 
-// Temporary user ID for single-user testing (Phase 6)
-// This will be replaced with real authentication in Phase 8
-export const TEMP_USER_ID = 'dev-user-001';
-
 // Extend Slate's types for our custom editor
 export type CustomEditor = BaseEditor & ReactEditor & HistoryEditor;
 

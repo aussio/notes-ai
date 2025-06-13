@@ -30,37 +30,12 @@ class NotesDB extends Dexie {
     });
 
     // Version 2: Add user_id support with indexes
-    this.version(2)
-      .stores({
-        notes:
-          'id, user_id, title, createdAt, updatedAt, [user_id+updatedAt], [id+user_id]', // Added user_id and compound indexes
-        notecards:
-          'id, user_id, front, back, createdAt, updatedAt, [user_id+updatedAt], [id+user_id]', // Added user_id and compound indexes
-      })
-      .upgrade(async (tx) => {
-        // Migration: Add user_id to existing records
-        const TEMP_USER_ID = 'dev-user-001';
-
-        // Migrate existing notes
-        await tx
-          .table('notes')
-          .toCollection()
-          .modify((note: DatabaseNote) => {
-            if (!note.user_id) {
-              note.user_id = TEMP_USER_ID;
-            }
-          });
-
-        // Migrate existing notecards
-        await tx
-          .table('notecards')
-          .toCollection()
-          .modify((notecard: DatabaseNotecard) => {
-            if (!notecard.user_id) {
-              notecard.user_id = TEMP_USER_ID;
-            }
-          });
-      });
+    this.version(2).stores({
+      notes:
+        'id, user_id, title, createdAt, updatedAt, [user_id+updatedAt], [id+user_id]', // Added user_id and compound indexes
+      notecards:
+        'id, user_id, front, back, createdAt, updatedAt, [user_id+updatedAt], [id+user_id]', // Added user_id and compound indexes
+    });
   }
 }
 

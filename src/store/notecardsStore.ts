@@ -2,33 +2,13 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
 import type { Notecard } from '@/types';
-import { notecardsDatabase, notesDatabase } from '@/lib/database';
+import { notecardsDB, notesDB } from '@/lib/database-adapter';
 import {
   removeNotecardEmbedsFromContent,
   findNotesWithNotecardEmbeds,
 } from '@/lib/editor';
-import type { UpdateNotecardInput, UpdateNoteInput } from '@/types';
-import { TEMP_USER_ID } from '@/types';
 
-// Create a simplified interface for the store
-const notecardsDB = {
-  getAllNotecards: () => notecardsDatabase.getAllNotecards(TEMP_USER_ID),
-  createNotecard: (front: string, back: string) =>
-    notecardsDatabase.createNotecard({ front, back }, TEMP_USER_ID),
-  updateNotecard: (id: string, updates: UpdateNotecardInput) =>
-    notecardsDatabase.updateNotecard(id, updates, TEMP_USER_ID),
-  deleteNotecard: (id: string) =>
-    notecardsDatabase.deleteNotecard(id, TEMP_USER_ID),
-  searchNotecards: (query: string) =>
-    notecardsDatabase.searchNotecards(query, TEMP_USER_ID),
-};
-
-// Create a simplified interface for notes DB operations used in cleanup
-const notesDB = {
-  getAllNotes: () => notesDatabase.getAllNotes(TEMP_USER_ID),
-  updateNote: (id: string, updates: UpdateNoteInput) =>
-    notesDatabase.updateNote(id, updates, TEMP_USER_ID),
-};
+import { useAuthStore } from '@/store/authStore';
 
 // Callback to notify notes store when notes are updated due to notecard changes
 let notifyNotesStoreUpdate: ((affectedNoteIds: string[]) => void) | null = null;
@@ -75,25 +55,56 @@ export const useNotecardsStore = create<NotecardsState>()(
       isSaving: false,
       error: null,
 
-      // Actions
+      // Load all notecards for the current user
       loadNotecards: async () => {
+        const authState = useAuthStore.getState();
+
+        // Don't load if auth is not initialized yet
+        if (!authState.isInitialized) {
+          return;
+        }
+
+        // Clear any previous auth errors when auth state changes
+        if (authState.user) {
+          set({ error: null });
+        }
+
+        if (!authState.user) {
+          set({ error: 'User not authenticated', isLoading: false });
+          return;
+        }
+
         set({ isLoading: true, error: null });
         try {
-          const notecards = await notecardsDB.getAllNotecards();
+          const notecards = await notecardsDB.getAllNotecards(
+            authState.user.id
+          );
           set({ notecards, isLoading: false });
         } catch (error) {
           console.error('Failed to load notecards:', error);
           set({
-            error: 'Failed to load notecards',
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to load notecards',
             isLoading: false,
           });
         }
       },
 
+      // Create a new notecard
       createNotecard: async (front = '', back = '') => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
         set({ isSaving: true, error: null });
         try {
-          const newNotecard = await notecardsDB.createNotecard(front, back);
+          const newNotecard = await notecardsDB.createNotecard(
+            { front, back },
+            user.id
+          );
           const { notecards } = get();
           set({
             notecards: [newNotecard, ...notecards],
@@ -104,28 +115,43 @@ export const useNotecardsStore = create<NotecardsState>()(
         } catch (error) {
           console.error('Failed to create notecard:', error);
           set({
-            error: 'Failed to create notecard',
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to create notecard',
             isSaving: false,
           });
           throw error;
         }
       },
 
-      updateNotecard: async (
-        id: string,
-        updates: Partial<Omit<Notecard, 'id' | 'createdAt' | 'user_id'>>
-      ) => {
+      // Update an existing notecard
+      updateNotecard: async (id, updates) => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
         set({ isSaving: true, error: null });
         try {
-          const updatedNotecard = await notecardsDB.updateNotecard(id, updates);
+          const updatedNotecard = await notecardsDB.updateNotecard(
+            id,
+            updates,
+            user.id
+          );
           const { notecards, currentNotecard } = get();
 
           const updatedNotecards = notecards.map((notecard) =>
             notecard.id === id ? updatedNotecard : notecard
           );
 
+          // Sort by updatedAt to keep most recent first
+          const sortedNotecards = updatedNotecards.sort(
+            (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+          );
+
           set({
-            notecards: updatedNotecards,
+            notecards: sortedNotecards,
             currentNotecard:
               currentNotecard?.id === id ? updatedNotecard : currentNotecard,
             isSaving: false,
@@ -133,138 +159,174 @@ export const useNotecardsStore = create<NotecardsState>()(
         } catch (error) {
           console.error('Failed to update notecard:', error);
           set({
-            error: 'Failed to update notecard',
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to update notecard',
             isSaving: false,
           });
           throw error;
         }
       },
 
-      deleteNotecard: async (id: string) => {
+      // Delete a notecard and clean up embeds in notes
+      deleteNotecard: async (id) => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
         set({ isLoading: true, error: null });
         try {
           // First, find all notes that contain embeds for this notecard
-          const allNotes = await notesDB.getAllNotes();
+          const allNotes = await notesDB.getAllNotes(user.id);
           const notesWithEmbeds = findNotesWithNotecardEmbeds(allNotes, id);
 
-          // Remove the notecard embeds from affected notes
+          // Remove notecard embeds from affected notes
           const affectedNoteIds: string[] = [];
           for (const note of notesWithEmbeds) {
             const updatedContent = removeNotecardEmbedsFromContent(
               note.content,
               id
             );
-            await notesDB.updateNote(note.id, {
-              content: updatedContent,
-            });
+            await notesDB.updateNote(
+              note.id,
+              {
+                content: updatedContent,
+              },
+              user.id
+            );
             affectedNoteIds.push(note.id);
           }
 
-          // Notify notes store of the updates if callback is available
+          // Notify notes store of updates if callback is set
           if (notifyNotesStoreUpdate && affectedNoteIds.length > 0) {
             notifyNotesStoreUpdate(affectedNoteIds);
           }
 
           // Then delete the notecard itself
-          await notecardsDB.deleteNotecard(id);
+          await notecardsDB.deleteNotecard(id, user.id);
           const { notecards, currentNotecard } = get();
 
           const filteredNotecards = notecards.filter(
             (notecard) => notecard.id !== id
           );
-          // If we deleted the current notecard, set current to the most recent remaining notecard
-          let newCurrentNotecard = currentNotecard;
-          if (currentNotecard?.id === id) {
-            newCurrentNotecard =
-              filteredNotecards.length > 0 ? filteredNotecards[0] : null;
-          }
+          const newCurrentNotecard =
+            currentNotecard?.id === id ? null : currentNotecard;
 
           set({
             notecards: filteredNotecards,
             currentNotecard: newCurrentNotecard,
             isLoading: false,
           });
-
-          // Log cleanup info for user feedback
-          if (notesWithEmbeds.length > 0) {
-            console.info(
-              `Cleaned up notecard embeds from ${notesWithEmbeds.length} note(s)`
-            );
-          }
         } catch (error) {
           console.error('Failed to delete notecard:', error);
           set({
-            error: 'Failed to delete notecard',
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to delete notecard',
             isLoading: false,
           });
           throw error;
         }
       },
 
-      setCurrentNotecard: (notecard: Notecard | null) => {
-        set({ currentNotecard: notecard });
-      },
+      // Set the current active notecard
+      setCurrentNotecard: (notecard) => set({ currentNotecard: notecard }),
 
-      setSearchQuery: (query: string) => {
-        set({ searchQuery: query });
-      },
+      // Set search query
+      setSearchQuery: (query) => set({ searchQuery: query }),
 
-      searchNotecards: async (query: string) => {
-        if (!query.trim()) {
-          return get().notecards;
+      // Search notecards
+      searchNotecards: async (query) => {
+        const user = useAuthStore.getState().user;
+        if (!user) {
+          throw new Error('User not authenticated');
         }
 
         try {
-          const results = await notecardsDB.searchNotecards(query);
+          const results = await notecardsDB.searchNotecards(query, user.id);
           return results;
         } catch (error) {
           console.error('Failed to search notecards:', error);
-          set({ error: 'Failed to search notecards' });
-          return [];
+          throw error;
         }
       },
 
-      clearError: () => {
-        set({ error: null });
-      },
+      // Clear error state
+      clearError: () => set({ error: null }),
 
-      // Utility function for getting notecard by ID (used by embed components)
-      getNotecardById: (id: string) => {
+      // Get notecard by ID (for embeds)
+      getNotecardById: (id) => {
         const { notecards } = get();
         return notecards.find((notecard) => notecard.id === id);
       },
-    }))
+    })),
+    { name: 'notecards-store' }
   )
 );
 
-// Selector hooks for optimized re-renders
-export const useFilteredNotecards = () => {
-  return useNotecardsStore((state) => {
-    const { notecards, searchQuery } = state;
+// Set up auth state subscription to automatically load notecards when user becomes authenticated
+useAuthStore.subscribe(
+  (state) => ({ user: state.user, isInitialized: state.isInitialized }),
+  (authState, prevAuthState) => {
+    const notecardsStore = useNotecardsStore.getState();
 
-    if (!searchQuery.trim()) {
-      return notecards;
+    // If user just became authenticated or auth just became initialized with a user
+    if (
+      authState.isInitialized &&
+      authState.user &&
+      (!prevAuthState.isInitialized ||
+        !prevAuthState.user ||
+        prevAuthState.user.id !== authState.user.id)
+    ) {
+      // Automatically load notecards
+      notecardsStore.loadNotecards();
     }
 
-    const query = searchQuery.toLowerCase();
-    return notecards.filter(
-      (notecard) =>
-        notecard.front.toLowerCase().includes(query) ||
-        notecard.back.toLowerCase().includes(query)
-    );
-  });
-};
+    // If user logged out, clear notecards and errors
+    if (prevAuthState.user && !authState.user) {
+      useNotecardsStore.setState({
+        notecards: [],
+        currentNotecard: null,
+        error: null,
+      });
+    }
+  }
+);
 
-export const useCurrentNotecard = () => {
-  return useNotecardsStore((state) => state.currentNotecard);
-};
+// Selectors for easier consumption
+export const useCurrentNotecard = () =>
+  useNotecardsStore((state) => state.currentNotecard);
+export const useNotecards = () => useNotecardsStore((state) => state.notecards);
+export const useIsNotecardLoading = () =>
+  useNotecardsStore((state) => state.isLoading);
+export const useIsNotecardSaving = () =>
+  useNotecardsStore((state) => state.isSaving);
+export const useNotecardsError = () =>
+  useNotecardsStore((state) => state.error);
 
-export const useIsNotecardSaving = () => {
-  return useNotecardsStore((state) => state.isSaving);
-};
-
+// Get notecard by ID selector
 export const useNotecardById = (id: string) => {
   return useNotecardsStore((state) =>
     state.notecards.find((notecard) => notecard.id === id)
   );
+};
+
+// Filtered notecards selector for backward compatibility
+export const useFilteredNotecards = () => {
+  const notecards = useNotecardsStore((state) => state.notecards);
+  const searchQuery = useNotecardsStore((state) => state.searchQuery);
+
+  if (!searchQuery.trim()) {
+    return notecards;
+  }
+
+  const query = searchQuery.toLowerCase();
+  return notecards.filter((notecard) => {
+    const frontMatch = notecard.front.toLowerCase().includes(query);
+    const backMatch = notecard.back.toLowerCase().includes(query);
+    return frontMatch || backMatch;
+  });
 };

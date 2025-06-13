@@ -1,30 +1,42 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import MainLayout from '@/components/layout/MainLayout';
 import { NotecardEditor } from '@/components/notecards/NotecardEditor';
 import { DeleteNotecardModal } from '@/components/notecards/DeleteNotecardModal';
+import AuthGuard from '@/components/auth/AuthGuard';
 import {
   useCurrentNotecard,
   useNotecardsStore,
   useIsNotecardSaving,
 } from '@/store/notecardsStore';
 import { useNotesStore } from '@/store/notesStore';
+import { useUser } from '@/store/authStore';
 import { findNotesWithNotecardEmbeds } from '@/lib/editor';
 
 export default function NotecardsPage() {
   const currentNotecard = useCurrentNotecard();
-  const { loadNotecards, deleteNotecard, updateNotecard } = useNotecardsStore();
+  const {
+    deleteNotecard,
+    updateNotecard,
+    loadNotecards,
+    notecards,
+    isLoading,
+    error,
+  } = useNotecardsStore();
   const { notes } = useNotesStore();
+  const user = useUser();
   const isSaving = useIsNotecardSaving();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Load notecards when the page mounts
+  // Load notecards when user becomes available (only if not already loaded)
   useEffect(() => {
-    loadNotecards();
-  }, [loadNotecards]);
+    if (user && notecards.length === 0 && !isLoading && !error) {
+      loadNotecards();
+    }
+  }, [user, notecards.length, isLoading, error, loadNotecards]);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -56,7 +68,7 @@ export default function NotecardsPage() {
     : [];
 
   return (
-    <>
+    <AuthGuard>
       <MainLayout
         currentNoteTitle={currentTitle}
         isSaving={isSaving}
@@ -82,14 +94,14 @@ export default function NotecardsPage() {
                 Welcome to Notecards
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Your local-first spaced repetition system. Select a notecard
+                Your cloud-first spaced repetition system. Select a notecard
                 from the sidebar to get started, or create a new notecard to
                 begin studying.
               </p>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💡 All your notecards are stored locally on your device. No
-                  internet connection required!
+                  ☁️ All your notecards are securely stored in the cloud with
+                  Supabase!
                 </p>
               </div>
             </div>
@@ -137,6 +149,6 @@ export default function NotecardsPage() {
         notecardFront={currentNotecard?.front || ''}
         notesContaining={notesContaining}
       />
-    </>
+    </AuthGuard>
   );
 }

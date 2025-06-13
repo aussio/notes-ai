@@ -1,29 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import NoteEditor from '@/components/NoteEditor';
 import SlateDebugPanel from '@/components/editor/SlateDebugPanel';
 import { DeleteNoteModal } from '@/components/notes/DeleteNoteModal';
+import AuthGuard from '@/components/auth/AuthGuard';
 import {
   useNotesStore,
   useCurrentNoteTitle,
   useIsSaving,
 } from '@/store/notesStore';
+import { useUser } from '@/store/authStore';
 import { CustomElement } from '@/types';
 import Image from 'next/image';
 
 export default function Home() {
-  const { loadNotes, currentNote, deleteNote, updateNote } = useNotesStore();
+  const {
+    currentNote,
+    deleteNote,
+    updateNote,
+    loadNotes,
+    notes,
+    isLoading,
+    error,
+  } = useNotesStore();
   const currentNoteTitle = useCurrentNoteTitle();
   const isSaving = useIsSaving();
+  const user = useUser();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Load notes when the component mounts
+  // Load notes when user becomes available (only if not already loaded)
   useEffect(() => {
-    loadNotes();
-  }, [loadNotes]);
+    if (user && notes.length === 0 && !isLoading && !error) {
+      loadNotes();
+    }
+  }, [user, notes.length, isLoading, error, loadNotes]);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -53,7 +66,7 @@ export default function Home() {
     : false;
 
   return (
-    <>
+    <AuthGuard>
       <MainLayout
         currentNoteTitle={currentNoteTitle}
         isSaving={isSaving}
@@ -79,13 +92,13 @@ export default function Home() {
                 Welcome to Notes
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Your local-first note-taking app. Select a note from the sidebar
+                Your cloud-first note-taking app. Select a note from the sidebar
                 to get started, or create a new note to begin writing.
               </p>
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
-                  💡 All your notes are stored locally on your device. No
-                  internet connection required!
+                  ☁️ All your notes are securely stored in the cloud with
+                  Supabase!
                 </p>
               </div>
             </div>
@@ -110,6 +123,6 @@ export default function Home() {
         note={currentNote}
         hasEmbeddedNotecards={hasEmbeddedNotecards}
       />
-    </>
+    </AuthGuard>
   );
 }

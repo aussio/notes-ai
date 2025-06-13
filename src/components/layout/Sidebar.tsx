@@ -34,7 +34,6 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     currentNote,
     isLoading: notesLoading,
     error: notesError,
-    notes,
   } = useNotesStore();
 
   // Notecards store
@@ -49,6 +48,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
     deleteNotecard,
   } = useNotecardsStore();
 
+  // Get filtered data
   const filteredNotes = useFilteredNotes();
   const filteredNotecards = useFilteredNotecards();
 
@@ -198,6 +198,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           <button
             onClick={onToggle}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"
+            aria-label="Close sidebar"
           >
             <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
@@ -362,7 +363,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         notecardFront={notecardToDelete?.front || ''}
         notesContaining={
           notecardToDelete
-            ? findNotesWithNotecardEmbeds(notes, notecardToDelete.id)
+            ? findNotesWithNotecardEmbeds(filteredNotes, notecardToDelete.id)
             : []
         }
       />
