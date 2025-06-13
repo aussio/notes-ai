@@ -16,27 +16,20 @@ import { CustomElement } from '@/types';
 import Image from 'next/image';
 
 export default function Home() {
-  const {
-    currentNote,
-    deleteNote,
-    updateNote,
-    loadNotes,
-    notes,
-    isLoading,
-    error,
-  } = useNotesStore();
+  const { currentNote, deleteNote, updateNote, loadNotes, isLoading, error } =
+    useNotesStore();
   const currentNoteTitle = useCurrentNoteTitle();
   const isSaving = useIsSaving();
   const user = useUser();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Load notes when user becomes available (only if not already loaded)
+  // Load notes when user becomes available
   useEffect(() => {
-    if (user && notes.length === 0 && !isLoading && !error) {
+    if (user && !isLoading && !error) {
       loadNotes();
     }
-  }, [user, notes.length, isLoading, error, loadNotes]);
+  }, [user, isLoading, error, loadNotes]);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);

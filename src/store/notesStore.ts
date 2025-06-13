@@ -270,14 +270,14 @@ useAuthStore.subscribe(
         !prevAuthState.user ||
         prevAuthState.user.id !== authState.user.id)
     ) {
-      // Automatically load notes (only if not already loaded)
-      if (notesStore.notes.length === 0 && !notesStore.isLoading) {
+      // Automatically load notes (always load when user changes or auth initializes)
+      if (!notesStore.isLoading) {
         notesStore.loadNotes();
       }
 
       // Also trigger notecards loading for fast view switching
       const notecardsStore = useNotecardsStore.getState();
-      if (notecardsStore.notecards.length === 0 && !notecardsStore.isLoading) {
+      if (!notecardsStore.isLoading) {
         notecardsStore.loadNotecards();
       }
     }
