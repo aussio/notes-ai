@@ -75,13 +75,15 @@ export const useAuthStore = create<AuthState>()(
               setTimeout(() => {
                 import('@/store/notesStore').then((notesStore) => {
                   const store = notesStore.useNotesStore.getState();
-                  if (store.lastLoadedUserId !== session.user!.id) {
+                  // Only load if no notes are currently loaded
+                  if (store.notes.length === 0 && !store.isLoading) {
                     store.loadNotes();
                   }
                 });
                 import('@/store/notecardsStore').then((notecardsStore) => {
                   const store = notecardsStore.useNotecardsStore.getState();
-                  if (store.lastLoadedUserId !== session.user!.id) {
+                  // Only load if no notecards are currently loaded
+                  if (store.notecards.length === 0 && !store.isLoading) {
                     store.loadNotecards();
                   }
                 });

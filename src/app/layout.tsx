@@ -16,6 +16,21 @@ export const metadata: Metadata = {
   title: 'Teal Notes',
   description:
     'A local-first note-taking application with rich text editing and notecards',
+  manifest: '/manifest.json',
+  themeColor: '#0f172a',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Teal Notes',
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: '/favicon.ico' },

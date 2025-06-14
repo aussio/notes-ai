@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import InstallPWA from './InstallPWA';
+import UpdateBanner from './UpdateBanner';
+import OfflineStatus from './OfflineStatus';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -50,6 +53,11 @@ export default function MainLayout({
         {/* Main content */}
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>
+
+      {/* PWA Components */}
+      <InstallPWA />
+      <UpdateBanner />
+      <OfflineStatus />
     </div>
   );
 }

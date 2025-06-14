@@ -1,0 +1,63 @@
+{
+  "name": "Notes AI",
+  "short_name": "Notes",
+  "description": "A local-first note-taking application with rich text editing and notecard support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "education", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/teal_duck_logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/teal_duck_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Note",
+      "short_name": "New Note",
+      "description": "Create a new note",
+      "url": "/?action=new-note",
+      "icons": [
+        {
+          "src": "/teal_duck_logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Notecards",
+      "short_name": "Notecards",
+      "description": "View and manage notecards",
+      "url": "/notecards",
+      "icons": [
+        {
+          "src": "/teal_duck_logo.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

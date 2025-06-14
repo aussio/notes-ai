@@ -25,11 +25,13 @@
     "lucide-react": "^0.513.0",
     "nanoid": "^5.1.5",
     "next": "15.3.3",
+    "next-pwa": "^5.6.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "slate": "^0.115.1",
     "slate-history": "^0.113.1",
     "slate-react": "^0.114.2",
+    "workbox-window": "^7.3.0",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
@@ -38,7 +40,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/jest": "^29.5.14",
-    "@types/node": "^20",
+    "@types/node": "^20.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
