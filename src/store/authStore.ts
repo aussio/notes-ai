@@ -59,11 +59,34 @@ export const useAuthStore = create<AuthState>()(
           // Listen for auth changes
           supabase.auth.onAuthStateChange((event, session) => {
             console.log('Auth state changed:', event, session?.user?.email);
+            const prevUser = useAuthStore.getState().user;
+
             set({
               session,
               user: session?.user || null,
               error: null,
             });
+
+            // If user just logged in (signed in), manually trigger data loading
+            // This is needed because zustand subscriptions don't always fire from onAuthStateChange
+            if (event === 'SIGNED_IN' && session?.user && !prevUser) {
+              console.log('User just signed in, triggering data load...');
+              // Import and trigger loading after a short delay to ensure state is updated
+              setTimeout(() => {
+                import('@/store/notesStore').then((notesStore) => {
+                  const store = notesStore.useNotesStore.getState();
+                  if (store.lastLoadedUserId !== session.user!.id) {
+                    store.loadNotes();
+                  }
+                });
+                import('@/store/notecardsStore').then((notecardsStore) => {
+                  const store = notecardsStore.useNotecardsStore.getState();
+                  if (store.lastLoadedUserId !== session.user!.id) {
+                    store.loadNotecards();
+                  }
+                });
+              }, 100);
+            }
           });
         } catch (error) {
           console.error('Error initializing auth:', error);

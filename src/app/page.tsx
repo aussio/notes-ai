@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import NoteEditor from '@/components/NoteEditor';
 import SlateDebugPanel from '@/components/editor/SlateDebugPanel';
@@ -11,25 +11,15 @@ import {
   useCurrentNoteTitle,
   useIsSaving,
 } from '@/store/notesStore';
-import { useUser } from '@/store/authStore';
 import { CustomElement } from '@/types';
 import Image from 'next/image';
 
 export default function Home() {
-  const { currentNote, deleteNote, updateNote, loadNotes, isLoading, error } =
-    useNotesStore();
+  const { currentNote, deleteNote, updateNote } = useNotesStore();
   const currentNoteTitle = useCurrentNoteTitle();
   const isSaving = useIsSaving();
-  const user = useUser();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  // Load notes when user becomes available
-  useEffect(() => {
-    if (user && !isLoading && !error) {
-      loadNotes();
-    }
-  }, [user, isLoading, error, loadNotes]);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);

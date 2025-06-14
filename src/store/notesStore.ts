@@ -258,26 +258,24 @@ export const useNotesStore = create<NotesState>()(
 
 // Set up auth state subscription to automatically load notes when user becomes authenticated
 useAuthStore.subscribe(
-  (state) => ({ user: state.user, isInitialized: state.isInitialized }),
+  (state) => ({
+    user: state.user,
+    session: state.session,
+    isInitialized: state.isInitialized,
+  }),
   (authState, prevAuthState) => {
     const notesStore = useNotesStore.getState();
 
-    // If user just became authenticated or auth just became initialized with a user
-    if (
-      authState.isInitialized &&
-      authState.user &&
-      (!prevAuthState.isInitialized ||
-        !prevAuthState.user ||
-        prevAuthState.user.id !== authState.user.id)
-    ) {
-      // Automatically load notes (always load when user changes or auth initializes)
-      if (!notesStore.isLoading) {
+    // Simple approach: if we have a user and no notes, load them
+    if (authState.user && !notesStore.isLoading) {
+      // Load notes if we don't have any yet
+      if (notesStore.notes.length === 0) {
         notesStore.loadNotes();
       }
 
       // Also trigger notecards loading for fast view switching
       const notecardsStore = useNotecardsStore.getState();
-      if (!notecardsStore.isLoading) {
+      if (notecardsStore.notecards.length === 0 && !notecardsStore.isLoading) {
         notecardsStore.loadNotecards();
       }
     }
