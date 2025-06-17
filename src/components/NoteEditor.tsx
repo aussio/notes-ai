@@ -8,15 +8,11 @@ import type { CustomElement } from '@/types';
 export default function NoteEditor() {
   const { updateNote, currentNote } = useNotesStore();
 
-  // Handle content changes from the rich text editor
+  // Handle content changes from the rich text editor (always update)
   const handleContentChange = useCallback(
-    async (newContent: CustomElement[]) => {
+    (newContent: CustomElement[]) => {
       if (!currentNote) return;
-
-      // Only save if content actually changed
-      if (JSON.stringify(newContent) !== JSON.stringify(currentNote.content)) {
-        await updateNote(currentNote.id, { content: newContent });
-      }
+      updateNote(currentNote.id, { content: newContent });
     },
     [currentNote, updateNote]
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, Save, Trash2, Bug, User, ChevronDown } from 'lucide-react';
+import { Menu, Trash2, Bug, User, ChevronDown } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -10,7 +10,6 @@ import { useUser } from '@/store/authStore';
 interface HeaderProps {
   onToggleSidebar: () => void;
   currentNoteTitle?: string;
-  isSaving?: boolean;
   onDelete?: () => void;
   onTitleChange?: (newTitle: string) => void;
   onToggleDebug?: () => void;
@@ -20,7 +19,6 @@ interface HeaderProps {
 export default function Header({
   onToggleSidebar,
   currentNoteTitle,
-  isSaving,
   onDelete,
   onTitleChange,
   onToggleDebug,
@@ -111,13 +109,6 @@ export default function Header({
               >
                 {currentNoteTitle || 'Untitled'}
               </h1>
-            )}
-
-            {isSaving && (
-              <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-                <Save className="w-4 h-4 animate-pulse" />
-                Saving...
-              </div>
             )}
           </div>
         </div>

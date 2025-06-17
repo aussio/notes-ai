@@ -4,7 +4,9 @@ import Header from '@/components/layout/Header';
 import Sidebar from '@/components/layout/Sidebar';
 import MainLayout from '@/components/layout/MainLayout';
 
-// Mock auth store
+// Global supabase mocking is now handled in jest.setup.js
+
+// Mock auth store (all named exports used by components)
 jest.mock('@/store/authStore', () => ({
   useUser: jest.fn(() => ({
     id: 'test-user',
@@ -13,14 +15,19 @@ jest.mock('@/store/authStore', () => ({
       full_name: 'Test User',
     },
   })),
-  useAuthStore: {
+  useAuthStore: jest.fn(() => ({
     getState: () => ({
       user: {
         id: 'test-user',
         email: 'test@example.com',
       },
     }),
-  },
+  })),
+  useSession: jest.fn(() => null),
+  useIsAuthenticated: jest.fn(() => true),
+  useAuthLoading: jest.fn(() => false),
+  useAuthInitialized: jest.fn(() => true),
+  useAuthError: jest.fn(() => null),
 }));
 
 // Mock notes and notecards stores
@@ -156,22 +163,6 @@ describe('Header Component', () => {
     expect(screen.getByText('Test Note')).toBeInTheDocument();
   });
 
-  it('shows saving indicator when isSaving is true', () => {
-    render(
-      <Header
-        onToggleSidebar={mockToggleSidebar}
-        currentNoteTitle="Test Note"
-        isSaving={true}
-      />
-    );
-
-    expect(screen.getByText('Saving...')).toBeInTheDocument();
-    // Look for the saving indicator - the animate-pulse class is on the SVG element
-    const savingContainer = screen.getByText('Saving...').closest('div');
-    const animatedIcon = savingContainer?.querySelector('.animate-pulse');
-    expect(animatedIcon).toBeInTheDocument();
-  });
-
   it('shows delete button when note is selected', () => {
     render(
       <Header
@@ -291,13 +282,12 @@ describe('MainLayout Component', () => {
 
   it('passes props correctly to Header component', () => {
     render(
-      <MainLayout currentNoteTitle="Test Note" isSaving={true}>
+      <MainLayout currentNoteTitle="Test Note">
         <TestChild />
       </MainLayout>
     );
 
     expect(screen.getByText('Test Note')).toBeInTheDocument();
-    expect(screen.getByText('Saving...')).toBeInTheDocument();
   });
 
   it('manages sidebar state correctly', () => {

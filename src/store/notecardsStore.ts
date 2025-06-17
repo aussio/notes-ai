@@ -2,13 +2,14 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
 import type { Notecard } from '@/types';
-import { notecardsDB, notesDB } from '@/lib/database-adapter';
+import { notecardsDatabase, notesDatabase } from '@/lib/database';
 import {
   removeNotecardEmbedsFromContent,
   findNotesWithNotecardEmbeds,
 } from '@/lib/editor';
 
 import { useAuthStore } from '@/store/authStore';
+import { syncService } from '@/lib/sync/SyncService';
 
 // Callback to notify notes store when notes are updated due to notecard changes
 let notifyNotesStoreUpdate: ((affectedNoteIds: string[]) => void) | null = null;
@@ -76,7 +77,7 @@ export const useNotecardsStore = create<NotecardsState>()(
 
         set({ isLoading: true, error: null });
         try {
-          const notecards = await notecardsDB.getAllNotecards(
+          const notecards = await notecardsDatabase.getAllNotecards(
             authState.user.id
           );
           set({ notecards, isLoading: false });
@@ -101,7 +102,7 @@ export const useNotecardsStore = create<NotecardsState>()(
 
         set({ isSaving: true, error: null });
         try {
-          const newNotecard = await notecardsDB.createNotecard(
+          const newNotecard = await notecardsDatabase.createNotecard(
             { front, back },
             user.id
           );
@@ -111,6 +112,15 @@ export const useNotecardsStore = create<NotecardsState>()(
             currentNotecard: newNotecard,
             isSaving: false,
           });
+
+          // Queue for background sync
+          await syncService.queueOperation({
+            type: 'CREATE',
+            table: 'notecards',
+            data: newNotecard,
+            userId: user.id,
+          });
+
           return newNotecard;
         } catch (error) {
           console.error('Failed to create notecard:', error);
@@ -134,7 +144,7 @@ export const useNotecardsStore = create<NotecardsState>()(
 
         set({ isSaving: true, error: null });
         try {
-          const updatedNotecard = await notecardsDB.updateNotecard(
+          const updatedNotecard = await notecardsDatabase.updateNotecard(
             id,
             updates,
             user.id
@@ -155,6 +165,14 @@ export const useNotecardsStore = create<NotecardsState>()(
             currentNotecard:
               currentNotecard?.id === id ? updatedNotecard : currentNotecard,
             isSaving: false,
+          });
+
+          // Queue for background sync
+          await syncService.queueOperation({
+            type: 'UPDATE',
+            table: 'notecards',
+            data: updatedNotecard,
+            userId: user.id,
           });
         } catch (error) {
           console.error('Failed to update notecard:', error);
@@ -178,8 +196,14 @@ export const useNotecardsStore = create<NotecardsState>()(
 
         set({ isLoading: true, error: null });
         try {
+          // Get the notecard before deleting for sync queue
+          const notecardToDelete = await notecardsDatabase.getNotecardById(
+            id,
+            user.id
+          );
+
           // First, find all notes that contain embeds for this notecard
-          const allNotes = await notesDB.getAllNotes(user.id);
+          const allNotes = await notesDatabase.getAllNotes(user.id);
           const notesWithEmbeds = findNotesWithNotecardEmbeds(allNotes, id);
 
           // Remove notecard embeds from affected notes
@@ -189,7 +213,7 @@ export const useNotecardsStore = create<NotecardsState>()(
               note.content,
               id
             );
-            await notesDB.updateNote(
+            const updatedNote = await notesDatabase.updateNote(
               note.id,
               {
                 content: updatedContent,
@@ -197,6 +221,14 @@ export const useNotecardsStore = create<NotecardsState>()(
               user.id
             );
             affectedNoteIds.push(note.id);
+
+            // Queue note update for sync
+            await syncService.queueOperation({
+              type: 'UPDATE',
+              table: 'notes',
+              data: updatedNote,
+              userId: user.id,
+            });
           }
 
           // Notify notes store of updates if callback is set
@@ -205,7 +237,7 @@ export const useNotecardsStore = create<NotecardsState>()(
           }
 
           // Then delete the notecard itself
-          await notecardsDB.deleteNotecard(id, user.id);
+          await notecardsDatabase.deleteNotecard(id, user.id);
           const { notecards, currentNotecard } = get();
 
           const filteredNotecards = notecards.filter(
@@ -219,6 +251,16 @@ export const useNotecardsStore = create<NotecardsState>()(
             currentNotecard: newCurrentNotecard,
             isLoading: false,
           });
+
+          // Queue notecard deletion for sync if notecard existed
+          if (notecardToDelete) {
+            await syncService.queueOperation({
+              type: 'DELETE',
+              table: 'notecards',
+              data: notecardToDelete,
+              userId: user.id,
+            });
+          }
         } catch (error) {
           console.error('Failed to delete notecard:', error);
           set({
@@ -246,7 +288,10 @@ export const useNotecardsStore = create<NotecardsState>()(
         }
 
         try {
-          const results = await notecardsDB.searchNotecards(query, user.id);
+          const results = await notecardsDatabase.searchNotecards(
+            query,
+            user.id
+          );
           return results;
         } catch (error) {
           console.error('Failed to search notecards:', error);

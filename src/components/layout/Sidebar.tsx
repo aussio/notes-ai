@@ -15,6 +15,7 @@ import { DeleteNotecardModal } from '@/components/notecards/DeleteNotecardModal'
 import type { CustomElement, Notecard } from '@/types';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { SyncStatus } from './SyncStatus';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -352,6 +353,11 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Sync Status */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <SyncStatus />
         </div>
       </div>
 

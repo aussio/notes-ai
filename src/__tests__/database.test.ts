@@ -4,14 +4,14 @@ import type { CreateNoteInput, Note } from '@/types';
 // Test user ID for database tests
 const TEST_USER_ID = 'test-user-001';
 
-const mockNoteInput: CreateNoteInput = {
+const exampleNoteInput: CreateNoteInput = {
   title: 'Test Note',
   content: [
     { type: 'paragraph' as const, children: [{ text: 'Test content' }] },
   ],
 };
 
-const mockNoteInput2: CreateNoteInput = {
+const exampleNoteInput2: CreateNoteInput = {
   title: 'Another Test Note',
   content: [
     {
@@ -36,7 +36,7 @@ describe('Notes Database Operations', () => {
   }
 
   beforeEach(async () => {
-    // Clean up before each test
+    // Clean up IndexedDB and notes before each test for isolation
     const allNotes = await notesDatabase.getAllNotes(TEST_USER_ID);
     for (const note of allNotes) {
       await notesDatabase.deleteNote(note.id, TEST_USER_ID);
@@ -59,21 +59,27 @@ describe('Notes Database Operations', () => {
     });
 
     it('should create a new note successfully', async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput, TEST_USER_ID);
+      createdNote = await notesDatabase.createNote(
+        exampleNoteInput,
+        TEST_USER_ID
+      );
 
       expect(createdNote).toBeDefined();
       expect(createdNote.id).toBeDefined();
       expect(createdNote.user_id).toBe(TEST_USER_ID);
-      expect(createdNote.title).toBe(mockNoteInput.title);
-      expect(createdNote.content).toEqual(mockNoteInput.content);
+      expect(createdNote.title).toBe(exampleNoteInput.title);
+      expect(createdNote.content).toEqual(exampleNoteInput.content);
       expect(createdNote.createdAt).toBeInstanceOf(Date);
       expect(createdNote.updatedAt).toBeInstanceOf(Date);
     });
 
     it('should create multiple notes and return them in correct order', async () => {
-      const note1 = await notesDatabase.createNote(mockNoteInput, TEST_USER_ID);
+      const note1 = await notesDatabase.createNote(
+        exampleNoteInput,
+        TEST_USER_ID
+      );
       const note2 = await notesDatabase.createNote(
-        mockNoteInput2,
+        exampleNoteInput2,
         TEST_USER_ID
       );
 
@@ -83,8 +89,8 @@ describe('Notes Database Operations', () => {
 
       expect(note1.user_id).toBe(TEST_USER_ID);
       expect(note2.user_id).toBe(TEST_USER_ID);
-      expect(note1.title).toBe(mockNoteInput.title);
-      expect(note2.title).toBe(mockNoteInput2.title);
+      expect(note1.title).toBe(exampleNoteInput.title);
+      expect(note2.title).toBe(exampleNoteInput2.title);
     });
   });
 
@@ -99,9 +105,12 @@ describe('Notes Database Operations', () => {
     });
 
     it('should return all notes for the user ordered by updatedAt', async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput, TEST_USER_ID);
+      createdNote = await notesDatabase.createNote(
+        exampleNoteInput,
+        TEST_USER_ID
+      );
       const secondNote = await notesDatabase.createNote(
-        mockNoteInput2,
+        exampleNoteInput2,
         TEST_USER_ID
       );
 
@@ -131,7 +140,10 @@ describe('Notes Database Operations', () => {
     });
 
     it('should retrieve a specific note by ID for the user', async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput, TEST_USER_ID);
+      createdNote = await notesDatabase.createNote(
+        exampleNoteInput,
+        TEST_USER_ID
+      );
 
       const retrievedNote = await notesDatabase.getNoteById(
         createdNote.id,
@@ -141,7 +153,7 @@ describe('Notes Database Operations', () => {
       expect(retrievedNote).toBeDefined();
       expect(retrievedNote!.id).toBe(createdNote.id);
       expect(retrievedNote!.user_id).toBe(TEST_USER_ID);
-      expect(retrievedNote!.title).toBe(mockNoteInput.title);
+      expect(retrievedNote!.title).toBe(exampleNoteInput.title);
     });
 
     it('should return undefined for non-existent note ID', async () => {
@@ -158,7 +170,10 @@ describe('Notes Database Operations', () => {
     let createdNote: Note | null;
 
     beforeEach(async () => {
-      createdNote = await notesDatabase.createNote(mockNoteInput, TEST_USER_ID);
+      createdNote = await notesDatabase.createNote(
+        exampleNoteInput,
+        TEST_USER_ID
+      );
     });
 
     afterEach(async () => {
@@ -211,7 +226,7 @@ describe('Notes Database Operations', () => {
   describe('deleteNote', () => {
     it('should delete an existing note for the user', async () => {
       const createdNote = await notesDatabase.createNote(
-        mockNoteInput,
+        exampleNoteInput,
         TEST_USER_ID
       );
 

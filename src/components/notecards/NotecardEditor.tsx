@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNotecardsStore, useIsNotecardSaving } from '@/store/notecardsStore';
+import { useNotecardsStore } from '@/store/notecardsStore';
 import type { Notecard } from '@/types';
 
 interface NotecardEditorProps {
@@ -14,7 +14,6 @@ export const NotecardEditor: React.FC<NotecardEditorProps> = ({
   className = '',
 }) => {
   const { updateNotecard } = useNotecardsStore();
-  const isSaving = useIsNotecardSaving();
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
 
@@ -88,11 +87,6 @@ export const NotecardEditor: React.FC<NotecardEditorProps> = ({
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
           Edit Notecard
         </h2>
-        {isSaving && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Saving...
-          </span>
-        )}
       </div>
 
       {/* Editor */}

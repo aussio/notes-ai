@@ -6,11 +6,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { NotecardEditor } from '@/components/notecards/NotecardEditor';
 import { DeleteNotecardModal } from '@/components/notecards/DeleteNotecardModal';
 import AuthGuard from '@/components/auth/AuthGuard';
-import {
-  useCurrentNotecard,
-  useNotecardsStore,
-  useIsNotecardSaving,
-} from '@/store/notecardsStore';
+import { useCurrentNotecard, useNotecardsStore } from '@/store/notecardsStore';
 import { useNotesStore } from '@/store/notesStore';
 import { useUser } from '@/store/authStore';
 import { findNotesWithNotecardEmbeds } from '@/lib/editor';
@@ -27,7 +23,6 @@ export default function NotecardsPage() {
   } = useNotecardsStore();
   const { notes } = useNotesStore();
   const user = useUser();
-  const isSaving = useIsNotecardSaving();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -71,7 +66,6 @@ export default function NotecardsPage() {
     <AuthGuard>
       <MainLayout
         currentNoteTitle={currentTitle}
-        isSaving={isSaving}
         onDeleteNote={handleDeleteClick}
         onTitleChange={handleTitleChange}
         onToggleDebug={handleToggleDebug}

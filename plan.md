@@ -330,30 +330,208 @@ src/
 - [x] Implement password reset functionality
 - [x] Add email verification flow
 
-### Phase 9: Cloud Sync Implementation
+### Phase 9: Hybrid Offline-First Architecture ← **WE ARE HERE**
 
-**Goal**: Enable real-time synchronization between local and cloud storage
+**Goal**: Implement straightforward offline-first architecture with background cloud sync
 
-#### Hybrid Storage Architecture
+#### Architecture Overview
 
-- [ ] Implement local-first with cloud backup strategy
-- [ ] Create conflict resolution for simultaneous edits
-- [ ] Add offline-first sync queue
-- [ ] Implement incremental sync for performance
+**Core Principle**: Zustand stores ALWAYS work with IndexedDB locally, with background sync to Supabase.
 
-#### Real-time Features
+```
+User Action → Zustand Store → IndexedDB → Immediate UI Update
+                    ↓
+              Sync Queue → Background Sync → Supabase
+```
 
-- [ ] Set up Supabase real-time subscriptions
-- [ ] Implement live updates across user sessions
-- [ ] Add collaboration features for shared notes
-- [ ] Create sync status indicators
+#### Benefits of This Approach
 
-#### Advanced State Features
+✅ **Always works offline** (IndexedDB is always available)  
+✅ **Instant UI updates** (no waiting for network)  
+✅ **Simple Zustand integration** (single local database layer)  
+✅ **Easy development** (no conditional database logic)  
+✅ **Automatic conflict resolution** (with user control when needed)  
+✅ **Background sync** (doesn't block user actions)
 
-- [ ] Optimistic updates with rollback
-- [ ] Undo/redo functionality across sync
-- [ ] State persistence middleware
-- [ ] Performance optimization for large datasets
+#### Implementation Strategy
+
+**Phase 9.1: Simplify Database Layer** ✅ COMPLETED
+
+- [x] Remove database adapter switching logic (`USE_SUPABASE` flag)
+- [x] Always use IndexedDB for immediate operations
+- [x] Update Zustand stores to only work with local database
+- [x] Remove cloud database calls from store actions
+- [x] Simplify database imports and dependencies
+
+**Phase 9.2: Create Sync Service** ✅ COMPLETED
+
+- [x] Create `SyncService` class for background operations
+- [x] Implement sync queue for offline operations
+- [x] Add network status detection
+- [x] Create batch sync operations for efficiency
+- [x] Implement incremental sync with timestamps
+
+**Phase 9.2.1: Sync Integration** ✅ COMPLETED
+
+- [x] Integrate sync service into notes store (CREATE, UPDATE, DELETE)
+- [x] Integrate sync service into notecards store (CREATE, UPDATE, DELETE)
+- [x] Add initial sync on user authentication
+- [x] Create sync status UI component
+- [x] Add sync status to sidebar
+
+**Phase 9.3: Conflict Resolution**
+
+- [ ] Implement last-write-wins for simple conflicts
+- [ ] Add manual conflict resolution UI for complex cases
+- [ ] Create merge strategies for note content
+- [ ] Add conflict detection and user notification
+
+**Phase 9.4: Sync Status & UI**
+
+- [ ] Add sync status to Zustand stores
+- [ ] Create sync status indicators in UI
+- [ ] Add manual sync trigger button
+- [ ] Implement sync progress feedback
+- [ ] Add offline/online status indicators
+
+**Phase 9.5: Background Sync Implementation** ✅ COMPLETED
+
+- [x] Set up periodic background sync (every 5 minutes)
+- [x] Implement retry logic with exponential backoff
+- [x] Add sync on network reconnection
+- [x] Create sync on app focus/visibility change
+- [x] Add sync queue persistence across app restarts
+
+#### Technical Architecture
+
+**Data Flow Diagram**:
+
+```mermaid
+graph TD
+    A["User Action<br/>(Create/Edit/Delete)"] --> B["Zustand Store"]
+    B --> C["IndexedDB<br/>(Local Storage)"]
+    C --> D["UI Update<br/>(Immediate)"]
+
+    B --> E["Sync Queue<br/>(Background)"]
+    E --> F{"Online?"}
+    F -->|Yes| G["Sync Service"]
+    F -->|No| H["Queue Operation"]
+
+    G --> I["Supabase<br/>(Cloud Storage)"]
+    I --> J{"Conflict?"}
+    J -->|No| K["Update Local<br/>Last Sync Time"]
+    J -->|Yes| L["Conflict Resolution"]
+    L --> M["Update IndexedDB<br/>with Resolved Data"]
+    M --> N["Update Zustand Store"]
+    N --> O["UI Update"]
+
+    P["Network Status<br/>Change"] --> Q{"Just Came Online?"}
+    Q -->|Yes| R["Process Sync Queue"]
+    R --> G
+
+    S["App Startup"] --> T["Load from IndexedDB"]
+    T --> U["Populate Zustand Store"]
+    U --> V["Check for Cloud Updates"]
+    V --> G
+```
+
+#### New File Structure
+
+```
+src/
+├── lib/
+│   ├── sync/
+│   │   ├── SyncService.ts          # Main sync orchestrator
+│   │   ├── SyncQueue.ts            # Queue management
+│   │   ├── ConflictResolver.ts     # Conflict resolution logic
+│   │   └── NetworkMonitor.ts       # Network status detection
+│   ├── database.ts                 # IndexedDB only (simplified)
+│   └── supabase.ts                 # Cloud operations only
+├── store/
+│   ├── notesStore.ts              # Simplified - IndexedDB only
+│   ├── notecardsStore.ts          # Simplified - IndexedDB only
+│   └── syncStore.ts               # New - sync status management
+└── hooks/
+    ├── useSync.ts                 # Sync operations hook
+    └── useNetworkStatus.ts        # Network status hook
+```
+
+#### Zustand Store Simplification
+
+**Before (Complex)**:
+
+```typescript
+// Complex conditional database logic
+const database = USE_SUPABASE ? supabaseDB : indexedDB;
+const notes = await database.getAllNotes(userId);
+```
+
+**After (Simple)**:
+
+```typescript
+// Always use local database
+const notes = await notesDatabase.getAllNotes(userId);
+// Sync happens automatically in background
+```
+
+#### Implementation Details
+
+**1. Simplified Database Layer**
+
+- Remove `database-adapter.ts` complexity
+- Always use IndexedDB for store operations
+- Move cloud operations to dedicated sync service
+- Single source of truth: local database
+
+**2. Background Sync Service**
+
+```typescript
+class SyncService {
+  private syncQueue: SyncQueue;
+  private conflictResolver: ConflictResolver;
+
+  async syncNotes(userId: string): Promise<void>;
+  async syncNotecards(userId: string): Promise<void>;
+  async processQueue(): Promise<void>;
+  async resolveConflicts(): Promise<void>;
+}
+```
+
+**3. Sync Queue Management**
+
+```typescript
+interface SyncOperation {
+  id: string;
+  type: 'CREATE' | 'UPDATE' | 'DELETE';
+  table: 'notes' | 'notecards';
+  data: any;
+  timestamp: Date;
+  retryCount: number;
+}
+```
+
+**4. Conflict Resolution Strategy**
+
+- **Last-write-wins**: Default for most conflicts
+- **Manual resolution**: For complex content conflicts
+- **Merge strategies**: For note content using operational transforms
+- **User notification**: When manual intervention needed
+
+#### Success Metrics
+
+- [ ] All store operations work offline immediately
+- [ ] Background sync works without blocking UI
+- [ ] Conflicts are resolved automatically or with clear user prompts
+- [ ] Sync status is always visible and accurate
+- [ ] No data loss during offline/online transitions
+- [ ] Development workflow is simplified (no conditional database logic)
+
+#### Migration Strategy
+
+1. **Preserve existing data**: Ensure no data loss during migration
+2. **Gradual rollout**: Implement in phases to test each component
+3. **Fallback mechanism**: Ability to rollback if issues arise
+4. **User communication**: Clear sync status and any required actions
 
 ### Phase 10: Advanced Features & Polish
 
@@ -399,7 +577,7 @@ src/
 - [x] **Supabase Setup & Cloud Database (Phase 7)** ✅ COMPLETED
 - [x] **User Authentication (Phase 8)** ✅ COMPLETED
 - [x] **Production Deployment & Hosting** ✅ COMPLETED
-- [ ] **NEXT: Cloud Sync Implementation (Phase 9)** ← We are here
+- [x] **Cloud Sync Implementation (Phase 9)** ← Happy path complete
 - [ ] Basic local text search
 - [ ] Polish and testing
 

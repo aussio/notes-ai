@@ -6,18 +6,14 @@ import NoteEditor from '@/components/NoteEditor';
 import SlateDebugPanel from '@/components/editor/SlateDebugPanel';
 import { DeleteNoteModal } from '@/components/notes/DeleteNoteModal';
 import AuthGuard from '@/components/auth/AuthGuard';
-import {
-  useNotesStore,
-  useCurrentNoteTitle,
-  useIsSaving,
-} from '@/store/notesStore';
+import PWAInstallBanner from '@/components/layout/PWAInstallBanner';
+import { useNotesStore, useCurrentNoteTitle } from '@/store/notesStore';
 import { CustomElement } from '@/types';
 import Image from 'next/image';
 
 export default function Home() {
   const { currentNote, deleteNote, updateNote } = useNotesStore();
   const currentNoteTitle = useCurrentNoteTitle();
-  const isSaving = useIsSaving();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -52,7 +48,6 @@ export default function Home() {
     <AuthGuard>
       <MainLayout
         currentNoteTitle={currentNoteTitle}
-        isSaving={isSaving}
         onDeleteNote={handleDeleteClick}
         onTitleChange={handleTitleChange}
         onToggleDebug={handleToggleDebug}
@@ -62,7 +57,7 @@ export default function Home() {
           <NoteEditor />
         ) : (
           <div className="flex items-center justify-center h-full p-8">
-            <div className="text-center max-w-md">
+            <div className="text-center max-w-lg w-full">
               <div className="flex items-center justify-center mb-6">
                 <Image
                   src="/teal_duck_logo.png"
@@ -78,6 +73,10 @@ export default function Home() {
                 Your cloud-first note-taking app. Select a note from the sidebar
                 to get started, or create a new note to begin writing.
               </p>
+
+              {/* PWA Install Banner */}
+              <PWAInstallBanner />
+
               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   ☁️ All your notes are securely stored in the cloud with

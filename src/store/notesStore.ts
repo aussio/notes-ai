@@ -1,27 +1,14 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
-import type { Note } from '@/types';
-import { notesDB } from '@/lib/database-adapter';
-import type { CreateNoteInput, UpdateNoteInput } from '@/types';
+import type { Note, CustomElement } from '@/types';
+import { notesDatabase } from '@/lib/database';
 import { useAuthStore } from '@/store/authStore';
 import {
   useNotecardsStore,
   setNotesStoreUpdateCallback,
 } from '@/store/notecardsStore';
-
-// Create a simplified interface for the store
-const notesDatabase = {
-  getAllNotes: (userId: string) => notesDB.getAllNotes(userId),
-  createNote: (title: string, content: unknown[], userId: string) =>
-    notesDB.createNote({ title, content } as CreateNoteInput, userId),
-  updateNote: (id: string, updates: UpdateNoteInput, userId: string) =>
-    notesDB.updateNote(id, updates, userId),
-  deleteNote: (id: string, userId: string) => notesDB.deleteNote(id, userId),
-  searchNotes: (query: string, userId: string) =>
-    notesDB.searchNotes(query, userId),
-  getNoteById: (id: string, userId: string) => notesDB.getNoteById(id, userId),
-};
+import { syncService } from '@/lib/sync/SyncService';
 
 interface NotesState {
   // State
@@ -34,7 +21,7 @@ interface NotesState {
 
   // Actions
   loadNotes: () => Promise<void>;
-  createNote: (title?: string, content?: unknown[]) => Promise<Note>;
+  createNote: (title?: string, content?: CustomElement[]) => Promise<Note>;
   updateNote: (
     id: string,
     updates: Partial<Omit<Note, 'id' | 'createdAt' | 'user_id'>>
@@ -47,6 +34,9 @@ interface NotesState {
   // Internal method to refresh specific notes from database
   refreshNotes: (noteIds: string[]) => Promise<void>;
 }
+
+// Debounce map for per-note debouncing
+const noteSyncDebounceMap = new Map<string, NodeJS.Timeout>();
 
 export const useNotesStore = create<NotesState>()(
   devtools(
@@ -95,7 +85,9 @@ export const useNotesStore = create<NotesState>()(
       // Create a new note
       createNote: async (
         title = 'Untitled',
-        content = [{ type: 'paragraph', children: [{ text: '' }] }]
+        content = [
+          { type: 'paragraph', children: [{ text: '' }] },
+        ] as CustomElement[]
       ) => {
         const user = useAuthStore.getState().user;
         if (!user) {
@@ -105,8 +97,7 @@ export const useNotesStore = create<NotesState>()(
         set({ isSaving: true, error: null });
         try {
           const newNote = await notesDatabase.createNote(
-            title,
-            content,
+            { title, content },
             user.id
           );
           const { notes } = get();
@@ -115,6 +106,15 @@ export const useNotesStore = create<NotesState>()(
             currentNote: newNote,
             isSaving: false,
           });
+
+          // Queue for background sync
+          await syncService.queueOperation({
+            type: 'CREATE',
+            table: 'notes',
+            data: newNote,
+            userId: user.id,
+          });
+
           return newNote;
         } catch (error) {
           console.error('Failed to create note:', error);
@@ -157,6 +157,23 @@ export const useNotesStore = create<NotesState>()(
             currentNote: currentNote?.id === id ? updatedNote : currentNote,
             isSaving: false,
           });
+
+          // Debounce cloud sync per note
+          if (noteSyncDebounceMap.has(id)) {
+            clearTimeout(noteSyncDebounceMap.get(id));
+          }
+          noteSyncDebounceMap.set(
+            id,
+            setTimeout(() => {
+              syncService.queueOperation({
+                type: 'UPDATE',
+                table: 'notes',
+                data: updatedNote,
+                userId: user.id,
+              });
+              noteSyncDebounceMap.delete(id);
+            }, 500)
+          );
         } catch (error) {
           console.error('Failed to update note:', error);
           set({
@@ -177,6 +194,9 @@ export const useNotesStore = create<NotesState>()(
 
         set({ isLoading: true, error: null });
         try {
+          // Get the note before deleting for sync queue
+          const noteToDelete = await notesDatabase.getNoteById(id, user.id);
+
           await notesDatabase.deleteNote(id, user.id);
           const { notes, currentNote } = get();
 
@@ -188,6 +208,16 @@ export const useNotesStore = create<NotesState>()(
             currentNote: newCurrentNote,
             isLoading: false,
           });
+
+          // Queue for background sync if note existed
+          if (noteToDelete) {
+            await syncService.queueOperation({
+              type: 'DELETE',
+              table: 'notes',
+              data: noteToDelete,
+              userId: user.id,
+            });
+          }
         } catch (error) {
           console.error('Failed to delete note:', error);
           set({
@@ -263,7 +293,7 @@ useAuthStore.subscribe(
     session: state.session,
     isInitialized: state.isInitialized,
   }),
-  (authState, prevAuthState) => {
+  async (authState, prevAuthState) => {
     const notesStore = useNotesStore.getState();
 
     // Simple approach: if we have a user and no notes, load them
@@ -277,6 +307,19 @@ useAuthStore.subscribe(
       const notecardsStore = useNotecardsStore.getState();
       if (notecardsStore.notecards.length === 0 && !notecardsStore.isLoading) {
         notecardsStore.loadNotecards();
+      }
+
+      // Trigger initial sync when user becomes authenticated
+      if (!prevAuthState.user && authState.user) {
+        try {
+          await syncService.syncFromCloud(authState.user.id);
+          // Reload local data after sync
+          notesStore.loadNotes();
+          notecardsStore.loadNotecards();
+        } catch (error) {
+          console.error('Initial sync failed:', error);
+          // Don't throw - app should still work offline
+        }
       }
     }
 

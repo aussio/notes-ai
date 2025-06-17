@@ -58,3 +58,8 @@ if (typeof globalThis.structuredClone === 'undefined') {
     }
   };
 }
+
+// Mock the entire supabase module globally to prevent ESM import errors in all tests
+jest.mock('@/lib/supabase', () => ({
+  supabase: {},
+}));

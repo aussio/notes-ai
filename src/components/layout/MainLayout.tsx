@@ -6,11 +6,11 @@ import Sidebar from './Sidebar';
 import InstallPWA from './InstallPWA';
 import UpdateBanner from './UpdateBanner';
 import OfflineStatus from './OfflineStatus';
+import PWADebugInfo from './PWADebugInfo';
 
 interface MainLayoutProps {
   children: React.ReactNode;
   currentNoteTitle?: string;
-  isSaving?: boolean;
   onDeleteNote?: () => void;
   onTitleChange?: (newTitle: string) => void;
   onToggleDebug?: () => void;
@@ -20,7 +20,6 @@ interface MainLayoutProps {
 export default function MainLayout({
   children,
   currentNoteTitle,
-  isSaving,
   onDeleteNote,
   onTitleChange,
   onToggleDebug,
@@ -43,7 +42,6 @@ export default function MainLayout({
         <Header
           onToggleSidebar={toggleSidebar}
           currentNoteTitle={currentNoteTitle}
-          isSaving={isSaving}
           onDelete={onDeleteNote}
           onTitleChange={onTitleChange}
           onToggleDebug={onToggleDebug}
@@ -58,6 +56,7 @@ export default function MainLayout({
       <InstallPWA />
       <UpdateBanner />
       <OfflineStatus />
+      <PWADebugInfo />
     </div>
   );
 }

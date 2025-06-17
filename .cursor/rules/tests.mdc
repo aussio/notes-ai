@@ -1,0 +1,53 @@
+---
+description: 
+globs: *.test.ts,*test.tsx,*.test.js,*.test.jsx
+alwaysApply: false
+---
+# Testing Rules for Notes AI
+
+## Core Testing Philosophy
+- **Use real IndexedDB via fake-indexeddb** - never mock database operations
+- **Minimal mocking** - only mock external services (Supabase, Next.js APIs)
+- **Integration over unit** - test real data flows through stores + database
+
+## Database Testing
+- All tests use real IndexedDB operations via `fake-indexeddb/auto`
+- Always clean up IndexedDB data in `beforeEach` hooks for test isolation
+- Test actual store methods that interact with real database
+- Use descriptive test data names (e.g., `exampleNoteInput` not `mockNoteInput`)
+
+## Mocking Guidelines
+- Use as little mocks as possible. Try to *never* use mocks.
+- **Global mocks only**: Supabase (`jest.setup.js` handles this)
+- **Never mock**: database operations, stores, or business logic
+- **Store tests**: Use real database, real operations, real data
+
+## Test Structure
+```javascript
+describe('Store Operations', () => {
+  beforeEach(async () => {
+    // Clean up real IndexedDB data
+    const allItems = await database.getAllItems(TEST_USER_ID);
+    for (const item of allItems) {
+      await database.deleteItem(item.id, TEST_USER_ID);
+    }
+  });
+
+  it('should create item in real database', async () => {
+    // Test real store method that uses real IndexedDB
+    const item = await store.createItem(exampleInput, TEST_USER_ID);
+    expect(item.id).toBeDefined(); // Check real created data
+  });
+});
+```
+
+## Anti-Patterns to Avoid
+- ❌ Mocking database adapters or store operations
+- ❌ Using `jest.fn()` for business logic
+- ❌ Checking mock call counts instead of real data
+- ❌ Brittle mocks that break on refactoring
+- ❌ Testing mock behavior instead of real functionality
+
+## Expected Console Output
+- Sync service errors from mocked Supabase are normal and expected
+- Real database operations should show actual data creation/updates 

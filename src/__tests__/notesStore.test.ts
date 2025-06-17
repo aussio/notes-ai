@@ -10,18 +10,6 @@ import type { Note, CustomElement } from '@/types';
 // Test user ID constant
 const TEST_USER_ID = 'test-user-001';
 
-// Mock only the database adapter with simplified mock functions
-jest.mock('@/lib/database-adapter', () => ({
-  notesDB: {
-    getAllNotes: jest.fn().mockResolvedValue([]),
-    createNote: jest.fn(),
-    updateNote: jest.fn(),
-    deleteNote: jest.fn(),
-    searchNotes: jest.fn().mockResolvedValue([]),
-    getNoteById: jest.fn(),
-  },
-}));
-
 // Mock the auth store since we need authentication for the store
 jest.mock('@/store/authStore', () => ({
   useAuthStore: {
@@ -46,7 +34,7 @@ jest.mock('@/store/notecardsStore', () => ({
 }));
 
 // Helper to create mock notes
-const createMockNote = (overrides: Partial<Note> = {}): Note => ({
+const exampleNote = (overrides: Partial<Note> = {}): Note => ({
   id: 'test-id',
   user_id: TEST_USER_ID,
   title: 'Test Note',
@@ -73,8 +61,8 @@ describe('Selectors', () => {
   describe('useFilteredNotes', () => {
     it('returns all notes when no search query', () => {
       const notes = [
-        createMockNote({ id: '1', title: 'First Note' }),
-        createMockNote({ id: '2', title: 'Second Note' }),
+        exampleNote({ id: '1', title: 'First Note' }),
+        exampleNote({ id: '2', title: 'Second Note' }),
       ];
 
       act(() => {
@@ -87,9 +75,9 @@ describe('Selectors', () => {
 
     it('filters notes by title', () => {
       const notes = [
-        createMockNote({ id: '1', title: 'JavaScript Tutorial' }),
-        createMockNote({ id: '2', title: 'Python Guide' }),
-        createMockNote({ id: '3', title: 'TypeScript Notes' }),
+        exampleNote({ id: '1', title: 'JavaScript Tutorial' }),
+        exampleNote({ id: '2', title: 'Python Guide' }),
+        exampleNote({ id: '3', title: 'TypeScript Notes' }),
       ];
 
       act(() => {
@@ -106,7 +94,7 @@ describe('Selectors', () => {
 
     it('filters notes by content', () => {
       const notes = [
-        createMockNote({
+        exampleNote({
           id: '1',
           title: 'Note 1',
           content: [
@@ -116,7 +104,7 @@ describe('Selectors', () => {
             },
           ],
         }),
-        createMockNote({
+        exampleNote({
           id: '2',
           title: 'Note 2',
           content: [
@@ -140,17 +128,17 @@ describe('Selectors', () => {
       const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
       const notes = [
-        createMockNote({
+        exampleNote({
           id: '1',
           title: 'First Note',
           updatedAt: dayAgo,
         }),
-        createMockNote({
+        exampleNote({
           id: '2',
           title: 'Second Note',
           updatedAt: now,
         }),
-        createMockNote({
+        exampleNote({
           id: '3',
           title: 'Third Note',
           updatedAt: hourAgo,
@@ -175,17 +163,17 @@ describe('Selectors', () => {
       const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
       const notes = [
-        createMockNote({
+        exampleNote({
           id: '1',
           title: 'JavaScript Tutorial',
           updatedAt: hourAgo,
         }),
-        createMockNote({
+        exampleNote({
           id: '2',
           title: 'TypeScript Guide',
           updatedAt: now,
         }),
-        createMockNote({
+        exampleNote({
           id: '3',
           title: 'Python Notes',
           updatedAt: now,
@@ -207,7 +195,7 @@ describe('Selectors', () => {
 
   describe('useCurrentNoteTitle', () => {
     it('returns current note title', () => {
-      const note = createMockNote({ title: 'Current Note' });
+      const note = exampleNote({ title: 'Current Note' });
 
       act(() => {
         useNotesStore.setState({ currentNote: note });
@@ -241,7 +229,7 @@ describe('Selectors', () => {
 });
 
 describe('Notes Store', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset store state before each test
     useNotesStore.setState({
       notes: [],
@@ -254,25 +242,32 @@ describe('Notes Store', () => {
 
     // Clear all mocks
     jest.clearAllMocks();
+
+    // Clear IndexedDB between tests to prevent data leakage
+    if (typeof indexedDB !== 'undefined') {
+      try {
+        await new Promise<void>((resolve) => {
+          const deleteReq = indexedDB.deleteDatabase('notes-ai-db');
+          deleteReq.onsuccess = () => resolve();
+          deleteReq.onerror = () => resolve();
+          deleteReq.onblocked = () => resolve();
+        });
+        // Small delay to ensure cleanup completes
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
   });
 
   describe('createNote', () => {
     it('should create a new note and add it to the store', async () => {
-      const { notesDB } = await import('@/lib/database-adapter');
-      const mockNote = createMockNote({
-        id: 'new-note-id',
-        title: 'Test Note Title',
-        user_id: TEST_USER_ID,
-      });
-
-      (notesDB.createNote as jest.Mock).mockResolvedValue(mockNote);
-
       const { result } = renderHook(() => useNotesStore());
 
       expect(result.current.notes).toHaveLength(0);
       expect(result.current.isLoading).toBe(false);
 
-      // Start creating note
+      // Create a note using the real store
       await act(async () => {
         await result.current.createNote('Test Note Title');
       });
@@ -281,7 +276,8 @@ describe('Notes Store', () => {
       expect(result.current.notes).toHaveLength(1);
       expect(result.current.notes[0].title).toBe('Test Note Title');
       expect(result.current.notes[0].user_id).toBe(TEST_USER_ID);
-      expect(result.current.currentNote).toEqual(mockNote);
+      expect(result.current.notes[0].id).toBeDefined();
+      expect(result.current.currentNote).toEqual(result.current.notes[0]);
       expect(result.current.isSaving).toBe(false);
     });
 
@@ -315,26 +311,35 @@ describe('Notes Store', () => {
 
   describe('loadNotes', () => {
     it('should load notes from the database', async () => {
-      const { notesDB } = await import('@/lib/database-adapter');
-      const mockNotes = [
-        createMockNote({ id: '1', title: 'Note 1' }),
-        createMockNote({ id: '2', title: 'Note 2' }),
-      ];
-
-      (notesDB.getAllNotes as jest.Mock).mockResolvedValue(mockNotes);
-
       const { result } = renderHook(() => useNotesStore());
+
+      // First, create some notes so we have data to load
+      await act(async () => {
+        await result.current.createNote('Note 1');
+      });
+      await act(async () => {
+        await result.current.createNote('Note 2');
+      });
+
+      // Clear the store state to simulate a fresh load
+      act(() => {
+        useNotesStore.setState({ notes: [], currentNote: null });
+      });
 
       expect(result.current.notes).toHaveLength(0);
 
-      // Load notes
+      // Load notes from IndexedDB
       await act(async () => {
         await result.current.loadNotes();
       });
 
       expect(result.current.isLoading).toBe(false);
-      expect(result.current.notes).toEqual(mockNotes);
-      expect(notesDB.getAllNotes).toHaveBeenCalledWith(TEST_USER_ID);
+      expect(result.current.notes.length).toBeGreaterThanOrEqual(2);
+
+      // Check that our created notes are present
+      const noteTitles = result.current.notes.map((n) => n.title);
+      expect(noteTitles).toContain('Note 1');
+      expect(noteTitles).toContain('Note 2');
     });
   });
 
@@ -344,7 +349,7 @@ describe('Notes Store', () => {
 
       expect(result.current.currentNote).toBeNull();
 
-      const mockNote = {
+      const exampleNote = {
         id: 'test-note-1',
         user_id: TEST_USER_ID,
         title: 'Test Note',
@@ -354,16 +359,16 @@ describe('Notes Store', () => {
       };
 
       act(() => {
-        result.current.setCurrentNote(mockNote);
+        result.current.setCurrentNote(exampleNote);
       });
 
-      expect(result.current.currentNote).toEqual(mockNote);
+      expect(result.current.currentNote).toEqual(exampleNote);
     });
 
     it('should clear current note when called with null', () => {
       const { result } = renderHook(() => useNotesStore());
 
-      const mockNote = {
+      const exampleNote = {
         id: 'test-note-1',
         user_id: TEST_USER_ID,
         title: 'Test Note',
@@ -374,10 +379,10 @@ describe('Notes Store', () => {
 
       // Set a note first
       act(() => {
-        result.current.setCurrentNote(mockNote);
+        result.current.setCurrentNote(exampleNote);
       });
 
-      expect(result.current.currentNote).toEqual(mockNote);
+      expect(result.current.currentNote).toEqual(exampleNote);
 
       // Clear it
       act(() => {
