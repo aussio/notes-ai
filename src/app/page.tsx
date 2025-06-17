@@ -17,7 +17,6 @@ export default function Home() {
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [shouldAutoFocusTitle, setShouldAutoFocusTitle] = useState(false);
-
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
   };

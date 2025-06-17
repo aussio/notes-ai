@@ -76,6 +76,14 @@ export default function Header({
     }
   };
 
+  const handleTitleClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleTitleBlur = () => {
+    handleTitleSubmit();
+  };
+
   const handleUserMenuClick = () => {
     setShowUserMenu(!showUserMenu);
   };
@@ -107,14 +115,14 @@ export default function Header({
                   placeholder="Title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  onBlur={handleTitleSubmit}
+                  onBlur={handleTitleBlur}
                   onKeyDown={handleTitleKeyPress}
                   className="text-lg font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none text-gray-900 dark:text-white"
                   autoFocus
                 />
               ) : (
                 <h1
-                  onClick={onTitleChange ? () => setIsEditing(true) : undefined}
+                  onClick={handleTitleClick}
                   className={`text-lg font-semibold text-gray-900 dark:text-white ${
                     onTitleChange
                       ? 'cursor-text hover:text-blue-600 dark:hover:text-blue-400 transition-colors'

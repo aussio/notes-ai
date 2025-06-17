@@ -38,6 +38,9 @@ interface NotesState {
 // Debounce map for per-note debouncing
 const noteSyncDebounceMap = new Map<string, NodeJS.Timeout>();
 
+// Map to track auto-deletion timeouts for empty notes
+const autoDeleteTimeouts = new Map<string, NodeJS.Timeout>();
+
 // Helper function to deduplicate notes by ID
 const deduplicateNotes = (notes: Note[]): Note[] => {
   const noteMap = new Map<string, Note>();
@@ -169,6 +172,46 @@ export const useNotesStore = create<NotesState>()(
             userId: user.id,
           });
 
+          // Schedule auto-deletion for empty notes
+          const isNoteEmpty = (note: Note): boolean => {
+            const titleEmpty = !note.title || note.title.trim() === '';
+            const contentEmpty =
+              !note.content ||
+              note.content.length === 0 ||
+              note.content.every((element) => {
+                if (element.type === 'paragraph') {
+                  return element.children.every(
+                    (child) =>
+                      'text' in child &&
+                      (!child.text || child.text.trim() === '')
+                  );
+                }
+                return false;
+              });
+            return titleEmpty && contentEmpty;
+          };
+
+          if (isNoteEmpty(newNote)) {
+            const timeout = setTimeout(async () => {
+              const currentState = get();
+              const currentNote = currentState.notes.find(
+                (n) => n.id === newNote.id
+              );
+              if (currentNote && isNoteEmpty(currentNote)) {
+                console.log('Auto-deleting empty note:', newNote.id);
+                try {
+                  // Remove the timeout reference
+                  autoDeleteTimeouts.delete(newNote.id);
+                  // Call deleteNote directly
+                  await currentState.deleteNote(newNote.id);
+                } catch (error) {
+                  console.error('Failed to auto-delete empty note:', error);
+                }
+              }
+            }, 3000);
+            autoDeleteTimeouts.set(newNote.id, timeout);
+          }
+
           return newNote;
         } catch (error) {
           console.error('Failed to create note:', error);
@@ -228,6 +271,13 @@ export const useNotesStore = create<NotesState>()(
               noteSyncDebounceMap.delete(id);
             }, 500)
           );
+
+          // Cancel auto-deletion when note is updated
+          const timeout = autoDeleteTimeouts.get(id);
+          if (timeout) {
+            clearTimeout(timeout);
+            autoDeleteTimeouts.delete(id);
+          }
         } catch (error) {
           console.error('Failed to update note:', error);
           set({
@@ -271,6 +321,13 @@ export const useNotesStore = create<NotesState>()(
               data: noteToDelete,
               userId: user.id,
             });
+          }
+
+          // Clean up any auto-deletion timeout for this note
+          const timeout = autoDeleteTimeouts.get(id);
+          if (timeout) {
+            clearTimeout(timeout);
+            autoDeleteTimeouts.delete(id);
           }
         } catch (error) {
           console.error('Failed to delete note:', error);
