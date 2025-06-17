@@ -14,6 +14,7 @@ interface HeaderProps {
   onTitleChange?: (newTitle: string) => void;
   onToggleDebug?: () => void;
   isDebugVisible?: boolean;
+  autoFocusTitle?: boolean;
 }
 
 export default function Header({
@@ -23,6 +24,7 @@ export default function Header({
   onTitleChange,
   onToggleDebug,
   isDebugVisible,
+  autoFocusTitle = false,
 }: HeaderProps) {
   const router = useRouter();
   const user = useUser();
@@ -35,6 +37,13 @@ export default function Header({
   useEffect(() => {
     setTitle(currentNoteTitle || '');
   }, [currentNoteTitle]);
+
+  // Auto-focus title when autoFocusTitle is true
+  useEffect(() => {
+    if (autoFocusTitle) {
+      setIsEditing(true);
+    }
+  }, [autoFocusTitle]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -89,28 +98,35 @@ export default function Header({
             <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
 
-          {/* Title editing */}
-          <div className="flex items-center gap-2">
-            {isEditing ? (
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onBlur={handleTitleSubmit}
-                onKeyDown={handleTitleKeyPress}
-                className="text-lg font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none text-gray-900 dark:text-white"
-                autoFocus
-              />
-            ) : (
-              <h1
-                onClick={() => setIsEditing(true)}
-                className="text-lg font-semibold text-gray-900 dark:text-white cursor-text hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                title="Click to edit title"
-              >
-                {currentNoteTitle || 'Untitled'}
-              </h1>
-            )}
-          </div>
+          {/* Title display - show when currentNoteTitle is provided or when we have editing functionality */}
+          {(currentNoteTitle !== undefined || onTitleChange) && (
+            <div className="flex items-center gap-2">
+              {isEditing && onTitleChange ? (
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={handleTitleSubmit}
+                  onKeyDown={handleTitleKeyPress}
+                  className="text-lg font-semibold bg-transparent border-b-2 border-blue-500 focus:outline-none text-gray-900 dark:text-white"
+                  autoFocus
+                />
+              ) : (
+                <h1
+                  onClick={onTitleChange ? () => setIsEditing(true) : undefined}
+                  className={`text-lg font-semibold text-gray-900 dark:text-white ${
+                    onTitleChange
+                      ? 'cursor-text hover:text-blue-600 dark:hover:text-blue-400 transition-colors'
+                      : ''
+                  }`}
+                  title={onTitleChange ? 'Click to edit title' : undefined}
+                >
+                  {currentNoteTitle || ''}
+                </h1>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right side */}

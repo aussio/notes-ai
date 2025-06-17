@@ -61,13 +61,37 @@ export const NotecardEmbed: React.FC<NotecardEmbedProps> = ({
   useEffect(() => {
     if (notecard && !isEditing && !notecard.front && !notecard.back) {
       // Notecard is empty and user has stopped editing - delete it
-      const cleanup = setTimeout(() => {
-        deleteNotecard(notecard.id);
+      const cleanup = setTimeout(async () => {
+        // Always delete from store first
+        try {
+          await deleteNotecard(notecard.id);
+        } catch (deleteError) {
+          console.error('Failed to delete notecard from store:', deleteError);
+          return;
+        }
+
+        // Try to remove from editor only if we can safely do so
+        try {
+          const notecardPath = ReactEditor.findPath(editor, element);
+          Transforms.removeNodes(editor, { at: notecardPath });
+
+          // Focus the editor after deletion
+          setTimeout(() => {
+            try {
+              ReactEditor.focus(editor);
+            } catch {
+              // Ignore focus errors
+            }
+          }, 50);
+        } catch {
+          // Element no longer exists in current editor (note was switched) - that's fine
+          // The notecard was already deleted from the store, which is what matters
+        }
       }, 1000); // 1 second delay to avoid immediate deletion
 
       return () => clearTimeout(cleanup);
     }
-  }, [notecard, isEditing, deleteNotecard]);
+  }, [notecard, isEditing, deleteNotecard, editor, element]);
 
   const handleSaveFront = async (value: string) => {
     if (!notecard) return;

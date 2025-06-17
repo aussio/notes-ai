@@ -71,7 +71,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const handleNewItem = async () => {
     try {
       if (isNotecards) {
-        const newNotecard = await createNotecard('Front text', 'Back text');
+        const newNotecard = await createNotecard('', '');
         setCurrentNotecard(newNotecard);
       } else {
         await createNote();

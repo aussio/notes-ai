@@ -145,7 +145,8 @@ describe('Header Component', () => {
   it('renders correctly with default props', () => {
     render(<Header onToggleSidebar={mockToggleSidebar} />);
 
-    expect(screen.getByText('Untitled')).toBeInTheDocument();
+    // Should not display any title when no currentNoteTitle is provided
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /toggle sidebar/i })
     ).toBeInTheDocument();

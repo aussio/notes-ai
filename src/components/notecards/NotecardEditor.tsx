@@ -82,13 +82,6 @@ export const NotecardEditor: React.FC<NotecardEditorProps> = ({
     <div
       className={`flex flex-col h-full bg-white dark:bg-gray-950 ${className}`}
     >
-      {/* Header - minimal like notes */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          Edit Notecard
-        </h2>
-      </div>
-
       {/* Editor */}
       <div className="flex-1 p-6 space-y-6 overflow-auto">
         {/* Front */}

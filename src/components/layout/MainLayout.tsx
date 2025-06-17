@@ -15,6 +15,7 @@ interface MainLayoutProps {
   onTitleChange?: (newTitle: string) => void;
   onToggleDebug?: () => void;
   isDebugVisible?: boolean;
+  autoFocusTitle?: boolean;
 }
 
 export default function MainLayout({
@@ -24,6 +25,7 @@ export default function MainLayout({
   onTitleChange,
   onToggleDebug,
   isDebugVisible,
+  autoFocusTitle = false,
 }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -46,6 +48,7 @@ export default function MainLayout({
           onTitleChange={onTitleChange}
           onToggleDebug={onToggleDebug}
           isDebugVisible={isDebugVisible}
+          autoFocusTitle={autoFocusTitle}
         />
 
         {/* Main content */}

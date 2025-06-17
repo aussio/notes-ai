@@ -128,7 +128,7 @@ export const useNotesStore = create<NotesState>()(
 
       // Create a new note
       createNote: async (
-        title = 'Untitled',
+        title = '',
         content = [
           { type: 'paragraph', children: [{ text: '' }] },
         ] as CustomElement[]

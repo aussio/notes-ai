@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import NoteEditor from '@/components/NoteEditor';
 import SlateDebugPanel from '@/components/editor/SlateDebugPanel';
@@ -16,6 +16,7 @@ export default function Home() {
   const currentNoteTitle = useCurrentNoteTitle();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [shouldAutoFocusTitle, setShouldAutoFocusTitle] = useState(false);
 
   const handleDeleteClick = () => {
     setShowDeleteModal(true);
@@ -31,11 +32,22 @@ export default function Home() {
     if (currentNote) {
       await updateNote(currentNote.id, { title: newTitle });
     }
+    // Clear the auto-focus flag after title is changed
+    setShouldAutoFocusTitle(false);
   };
 
   const handleToggleDebug = () => {
     setIsDebugVisible(!isDebugVisible);
   };
+
+  // Detect when a new note is created (title is empty) to auto-focus title
+  useEffect(() => {
+    if (currentNote && (!currentNoteTitle || currentNoteTitle.trim() === '')) {
+      setShouldAutoFocusTitle(true);
+    } else {
+      setShouldAutoFocusTitle(false);
+    }
+  }, [currentNote, currentNoteTitle]);
 
   // Check if current note has embedded notecards
   const hasEmbeddedNotecards = currentNote
@@ -52,6 +64,7 @@ export default function Home() {
         onTitleChange={handleTitleChange}
         onToggleDebug={handleToggleDebug}
         isDebugVisible={isDebugVisible}
+        autoFocusTitle={shouldAutoFocusTitle}
       >
         {currentNote ? (
           <NoteEditor />

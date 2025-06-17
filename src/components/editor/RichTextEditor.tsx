@@ -38,12 +38,16 @@ export default function RichTextEditor({
   editorKey,
 }: RichTextEditorProps) {
   // Create the editor with React, History, and custom element plugins
+  // Recreate editor when editorKey changes to ensure clean state
   const editor = useMemo(
     () =>
       withCustomElements(
         withHistory(withReact(createEditor())) as CustomEditor
       ),
-    []
+    // editorKey is intentionally included to recreate editor instances
+    // when switching between notes to prevent stale state issues
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editorKey]
   );
 
   // Access the notecard store for creating notecards

@@ -34,7 +34,6 @@ export default function NoteEditor() {
       value={content}
       onChange={handleContentChange}
       placeholder="Start writing your note..."
-      autoFocus
     />
   );
 }

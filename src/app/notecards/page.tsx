@@ -13,14 +13,8 @@ import { findNotesWithNotecardEmbeds } from '@/lib/editor';
 
 export default function NotecardsPage() {
   const currentNotecard = useCurrentNotecard();
-  const {
-    deleteNotecard,
-    updateNotecard,
-    loadNotecards,
-    notecards,
-    isLoading,
-    error,
-  } = useNotecardsStore();
+  const { deleteNotecard, loadNotecards, notecards, isLoading, error } =
+    useNotecardsStore();
   const { notes } = useNotesStore();
   const user = useUser();
   const [isDebugVisible, setIsDebugVisible] = useState(false);
@@ -43,19 +37,9 @@ export default function NotecardsPage() {
     }
   };
 
-  const handleTitleChange = async (newTitle: string) => {
-    if (currentNotecard) {
-      // For notecards, we'll update the front text when the "title" is changed
-      await updateNotecard(currentNotecard.id, { front: newTitle });
-    }
-  };
-
   const handleToggleDebug = () => {
     setIsDebugVisible(!isDebugVisible);
   };
-
-  // Get the current "title" for the header - use front text
-  const currentTitle = currentNotecard?.front || undefined;
 
   // Find notes that contain this notecard for the modal
   const notesContaining = currentNotecard
@@ -65,9 +49,7 @@ export default function NotecardsPage() {
   return (
     <AuthGuard>
       <MainLayout
-        currentNoteTitle={currentTitle}
         onDeleteNote={handleDeleteClick}
-        onTitleChange={handleTitleChange}
         onToggleDebug={handleToggleDebug}
         isDebugVisible={isDebugVisible}
       >
