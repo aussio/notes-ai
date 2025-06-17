@@ -38,6 +38,17 @@ interface NotesState {
 // Debounce map for per-note debouncing
 const noteSyncDebounceMap = new Map<string, NodeJS.Timeout>();
 
+// Helper function to deduplicate notes by ID
+const deduplicateNotes = (notes: Note[]): Note[] => {
+  const noteMap = new Map<string, Note>();
+  notes.forEach((note) => {
+    noteMap.set(note.id, note);
+  });
+  return Array.from(noteMap.values()).sort(
+    (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+  );
+};
+
 export const useNotesStore = create<NotesState>()(
   devtools(
     subscribeWithSelector((set, get) => ({
@@ -70,8 +81,41 @@ export const useNotesStore = create<NotesState>()(
 
         set({ isLoading: true, error: null });
         try {
-          const notes = await notesDatabase.getAllNotes(authState.user.id);
-          set({ notes, isLoading: false });
+          const freshNotes = await notesDatabase.getAllNotes(authState.user.id);
+          const { notes: currentNotes } = get();
+
+          // Smart merge: preserve local notes that might have unsaved changes
+          const freshNotesMap = new Map(
+            freshNotes.map((note) => [note.id, note])
+          );
+          const mergedNotes: Note[] = [];
+
+          // First, add all current notes, preferring local version for potential unsaved changes
+          currentNotes.forEach((localNote) => {
+            const freshNote = freshNotesMap.get(localNote.id);
+            if (freshNote) {
+              // If fresh note is newer, use it (database is authoritative)
+              // If local note is newer or same, keep local (might have unsaved changes)
+              const useLocal = localNote.updatedAt >= freshNote.updatedAt;
+              mergedNotes.push(useLocal ? localNote : freshNote);
+              freshNotesMap.delete(localNote.id); // Mark as processed
+            } else {
+              // Local note doesn't exist in database yet (new/unsaved)
+              mergedNotes.push(localNote);
+            }
+          });
+
+          // Add any remaining fresh notes that weren't in local store
+          freshNotesMap.forEach((freshNote) => {
+            mergedNotes.push(freshNote);
+          });
+
+          // Sort by updatedAt to keep most recent first
+          const sortedNotes = mergedNotes.sort(
+            (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
+          );
+
+          set({ notes: sortedNotes, isLoading: false });
         } catch (error) {
           console.error('Failed to load notes:', error);
           set({
@@ -101,8 +145,18 @@ export const useNotesStore = create<NotesState>()(
             user.id
           );
           const { notes } = get();
+
+          // Ensure we don't add duplicates
+          const existingIndex = notes.findIndex(
+            (note) => note.id === newNote.id
+          );
+          const updatedNotes =
+            existingIndex >= 0
+              ? notes.map((note) => (note.id === newNote.id ? newNote : note))
+              : [newNote, ...notes];
+
           set({
-            notes: [newNote, ...notes],
+            notes: updatedNotes,
             currentNote: newNote,
             isSaving: false,
           });
@@ -260,26 +314,21 @@ export const useNotesStore = create<NotesState>()(
         if (!user) return;
 
         const { notes } = get();
-        const updatedNotes = [...notes];
+        const freshNotes: Note[] = [];
 
         for (const noteId of noteIds) {
           // Get fresh note from database
           const freshNote = await notesDatabase.getNoteById(noteId, user.id);
           if (freshNote) {
-            // Update in the notes array
-            const index = updatedNotes.findIndex((n) => n.id === noteId);
-            if (index !== -1) {
-              updatedNotes[index] = freshNote;
-            }
+            freshNotes.push(freshNote);
           }
         }
 
-        // Sort by updatedAt to keep most recent first
-        const sortedNotes = updatedNotes.sort(
-          (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
-        );
+        // Merge with existing notes and deduplicate
+        const mergedNotes = [...notes, ...freshNotes];
+        const deduplicatedNotes = deduplicateNotes(mergedNotes);
 
-        set({ notes: sortedNotes });
+        set({ notes: deduplicatedNotes });
       },
     })),
     { name: 'notes-store' }

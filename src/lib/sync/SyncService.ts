@@ -412,13 +412,17 @@ export class SyncService {
                 userId
               );
             } else {
-              await notesDatabase.createNote(
-                {
-                  title: note.title,
-                  content: note.content,
-                },
-                userId
-              );
+              // For new notes from cloud, we need to insert directly to preserve the ID
+              // Since createNote generates a new ID, we'll use the database directly
+              const { db } = await import('@/lib/database');
+              await db.notes.add({
+                id: cloudNote.id,
+                user_id: cloudNote.user_id,
+                title: cloudNote.title,
+                content: JSON.stringify(cloudNote.content),
+                createdAt: new Date(cloudNote.created_at).toISOString(),
+                updatedAt: new Date(cloudNote.updated_at).toISOString(),
+              });
             }
           }
         }

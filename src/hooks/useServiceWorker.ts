@@ -24,6 +24,11 @@ export default function useServiceWorker() {
       return;
     }
 
+    // Skip service worker registration in development
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
+
     let registration: ServiceWorkerRegistration | null = null;
 
     const registerServiceWorker = async () => {
