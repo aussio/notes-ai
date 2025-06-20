@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, Trash2, Bug, User, ChevronDown } from 'lucide-react';
+import { Menu, Trash2, Bug, User, ChevronDown, BarChart3 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -139,6 +139,15 @@ export default function Header({
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Review Statistics Button */}
+          <button
+            onClick={() => router.push('/review')}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+            title="View review statistics"
+          >
+            <BarChart3 className="w-5 h-5" />
+          </button>
+
           {/* Debug toggle */}
           {onToggleDebug && (
             <button

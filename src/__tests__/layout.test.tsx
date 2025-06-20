@@ -205,7 +205,9 @@ describe('Sidebar Component', () => {
   it('renders correctly when closed', () => {
     render(<Sidebar isOpen={false} onToggle={mockOnToggle} />);
 
-    expect(screen.getByRole('heading', { name: 'Notes' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Notes AI' })
+    ).toBeInTheDocument();
     expect(screen.getByText('New Note')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search notes...')).toBeInTheDocument();
   });
@@ -213,7 +215,9 @@ describe('Sidebar Component', () => {
   it('renders correctly when open', async () => {
     render(<Sidebar isOpen={true} onToggle={mockOnToggle} />);
 
-    expect(screen.getByRole('heading', { name: 'Notes' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Notes AI' })
+    ).toBeInTheDocument();
 
     // With real store, initially shows "No notes yet" when empty
     await waitFor(() => {
@@ -300,7 +304,7 @@ describe('MainLayout Component', () => {
 
     // Sidebar should be closed initially on mobile
     const sidebar = screen
-      .getByRole('heading', { name: 'Notes' })
+      .getByRole('heading', { name: 'Notes AI' })
       .closest('[class*="transform"]');
     expect(sidebar).toHaveClass('-translate-x-full');
   });

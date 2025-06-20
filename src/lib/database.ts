@@ -342,6 +342,20 @@ export const notecardsDatabase: NotecardsDatabase = {
       if (deletedCount === 0) {
         throw new Error('Notecard not found');
       }
+
+      // Cascade cleanup: Delete associated review stats from spaced repetition database
+      try {
+        const { cleanupNotecardReviewStats } = await import(
+          '@/lib/spaced-repetition/database'
+        );
+        await cleanupNotecardReviewStats(id, userId);
+      } catch (error) {
+        // Don't fail the main operation if cleanup fails, just log it
+        console.warn(
+          'Failed to cleanup review stats for deleted notecard:',
+          error
+        );
+      }
     } catch (error) {
       console.error('Failed to delete notecard:', error);
       throw new Error('Failed to delete notecard');

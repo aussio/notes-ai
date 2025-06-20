@@ -40,6 +40,69 @@ export interface Notecard {
   updatedAt: Date;
 }
 
+// Spaced repetition interfaces
+export interface NotecardReviewStats {
+  id: string;
+  notecard_id: string; // Foreign key to notecards table
+  user_id: string; // For data isolation
+  easinessFactor: number; // SM-2 ease factor
+  intervalDays: number; // Current interval
+  repetitions: number; // Number of successful reviews
+  nextReviewDate: Date; // When card is due
+  lastReviewDate: Date | null; // Last review timestamp (null for new cards)
+  totalReviews: number; // Total review count
+  correctReviews: number; // Successful reviews
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ReviewSession {
+  id: string;
+  user_id: string;
+  startTime: Date;
+  endTime: Date | null;
+  cardsReviewed: number;
+  cardsCorrect: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Database versions for serialization
+export interface DatabaseNotecardReviewStats {
+  id: string;
+  notecard_id: string;
+  user_id: string;
+  easiness_factor: number;
+  interval_days: number;
+  repetitions: number;
+  next_review_date: string; // ISO date string
+  last_review_date: string | null; // ISO date string
+  total_reviews: number;
+  correct_reviews: number;
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
+}
+
+export interface DatabaseReviewSession {
+  id: string;
+  user_id: string;
+  start_time: string; // ISO date string
+  end_time: string | null; // ISO date string
+  cards_reviewed: number;
+  cards_correct: number;
+  created_at: string; // ISO date string
+  updated_at: string; // ISO date string
+}
+
+// Review result types
+export type ReviewResult = 'correct' | 'wrong';
+
+// Review card with stats
+export interface ReviewCard {
+  notecard: Notecard;
+  reviewStats: NotecardReviewStats;
+}
+
 // Custom Slate element for embedding notecards
 export interface NotecardEmbedElement extends BaseCustomElement {
   type: 'notecard-embed';
@@ -160,6 +223,46 @@ export interface NotecardsDatabase {
   ) => Promise<Notecard>;
   deleteNotecard: (id: string, userId: string) => Promise<void>;
   searchNotecards: (query: string, userId: string) => Promise<Notecard[]>;
+}
+
+// Spaced repetition database operations interface
+export interface SpacedRepetitionDatabase {
+  // Review stats operations
+  getReviewStats: (
+    notecardId: string,
+    userId: string
+  ) => Promise<NotecardReviewStats | undefined>;
+  createReviewStats: (
+    notecardId: string,
+    userId: string
+  ) => Promise<NotecardReviewStats>;
+  updateReviewStats: (
+    id: string,
+    updates: Partial<NotecardReviewStats>
+  ) => Promise<NotecardReviewStats>;
+
+  // Review queue operations
+  getDueCards: (userId: string, limit?: number) => Promise<ReviewCard[]>;
+  getNewCards: (userId: string, limit?: number) => Promise<ReviewCard[]>;
+
+  // Review session operations
+  createReviewSession: (userId: string) => Promise<ReviewSession>;
+  updateReviewSession: (
+    id: string,
+    updates: Partial<ReviewSession>
+  ) => Promise<ReviewSession>;
+  getReviewSessions: (
+    userId: string,
+    limit?: number
+  ) => Promise<ReviewSession[]>;
+
+  // Statistics
+  getReviewStatistics: (userId: string) => Promise<{
+    totalCards: number;
+    dueCards: number;
+    newCards: number;
+    retentionRate: number;
+  }>;
 }
 
 // Utility types - user_id is passed separately in database operations

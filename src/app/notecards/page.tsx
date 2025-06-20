@@ -5,6 +5,8 @@ import Image from 'next/image';
 import MainLayout from '@/components/layout/MainLayout';
 import { NotecardEditor } from '@/components/notecards/NotecardEditor';
 import { DeleteNotecardModal } from '@/components/notecards/DeleteNotecardModal';
+import { NotecardStats } from '@/components/notecards/NotecardStats';
+import { ReviewStatistics } from '@/components/review/ReviewStatistics';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { useCurrentNotecard, useNotecardsStore } from '@/store/notecardsStore';
 import { useNotesStore } from '@/store/notesStore';
@@ -54,10 +56,21 @@ export default function NotecardsPage() {
         isDebugVisible={isDebugVisible}
       >
         {currentNotecard ? (
-          <NotecardEditor notecard={currentNotecard} />
+          <div className="flex flex-col h-full">
+            {/* Individual Notecard Stats */}
+            <div className="px-6 pt-4 pb-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+              <NotecardStats notecardId={currentNotecard.id} />
+            </div>
+
+            {/* Notecard Editor */}
+            <div className="flex-1">
+              <NotecardEditor notecard={currentNotecard} />
+            </div>
+          </div>
         ) : (
-          <div className="flex items-center justify-center h-full p-8">
-            <div className="text-center max-w-md">
+          <div className="p-8 space-y-8">
+            {/* Welcome Section */}
+            <div className="text-center max-w-lg mx-auto">
               <div className="flex items-center justify-center mb-6">
                 <Image
                   src="/teal_duck_logo.png"
@@ -80,6 +93,11 @@ export default function NotecardsPage() {
                   Supabase!
                 </p>
               </div>
+            </div>
+
+            {/* Review Statistics Dashboard */}
+            <div className="max-w-6xl mx-auto">
+              <ReviewStatistics />
             </div>
           </div>
         )}

@@ -1,6 +1,14 @@
 'use client';
 
-import { Plus, Search, Menu, FileText, CreditCard, Trash2 } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  Menu,
+  FileText,
+  CreditCard,
+  Trash2,
+  Brain,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useNotesStore, useFilteredNotes } from '@/store/notesStore';
 import {
@@ -61,6 +69,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
 
   // Determine current context
   const isNotecards = pathname === '/notecards';
+  const isReview = pathname === '/review' || pathname.startsWith('/review/');
   const searchQuery = isNotecards ? notecardsSearchQuery : notesSearchQuery;
   const setSearchQuery = isNotecards
     ? setNotecardsSearchQuery
@@ -184,34 +193,34 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
       `}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/teal_duck_logo.png"
-              alt="Teal Duck Logo"
-              width={32}
-              height={32}
-            />
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {isNotecards ? 'Notecards' : 'Notes'}
-            </h1>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Image
+                src="/teal_duck_logo.png"
+                alt="Teal Duck Logo"
+                width={32}
+                height={32}
+              />
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Notes AI
+              </h1>
+            </div>
+            <button
+              onClick={onToggle}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"
+              aria-label="Close sidebar"
+            >
+              <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </button>
           </div>
-          <button
-            onClick={onToggle}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"
-            aria-label="Close sidebar"
-          >
-            <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </button>
-        </div>
 
-        {/* Navigation Tabs */}
-        <div className="px-4 pt-4">
+          {/* Navigation Tabs */}
           <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => handleNavigate('/')}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                !isNotecards
+                !isNotecards && !isReview
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
@@ -228,41 +237,56 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
               }`}
             >
               <CreditCard className="w-4 h-4" />
-              Notecards
+              Cards
+            </button>
+            <button
+              onClick={() => handleNavigate('/review')}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isReview
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <Brain className="w-4 h-4" />
+              Review
             </button>
           </div>
         </div>
 
         {/* New Item Button */}
-        <div className="p-4">
-          <button
-            onClick={handleNewItem}
-            disabled={isLoading}
-            className="w-full flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {isNotecards ? 'New Notecard' : 'New Note'}
-          </button>
-        </div>
+        {!isReview && (
+          <div className="p-4">
+            <button
+              onClick={handleNewItem}
+              disabled={isLoading}
+              className="w-full flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {isNotecards ? 'New Notecard' : 'New Note'}
+            </button>
+          </div>
+        )}
 
         {/* Search */}
-        <div className="px-4 pb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder={`Search ${isNotecards ? 'notecards' : 'notes'}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg 
-                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+        {!isReview && (
+          <div className="px-4 pb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder={`Search ${isNotecards ? 'notecards' : 'notes'}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg 
+                           bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Error display */}
-        {error && (
+        {error && !isReview && (
           <div className="px-4 pb-2">
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
               <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
@@ -271,89 +295,119 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
         )}
 
         {/* Items List */}
-        <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
-            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-              Loading {isNotecards ? 'notecards' : 'notes'}...
-            </div>
-          ) : isNotecards ? (
-            /* Notecards List */
-            filteredNotecards.length === 0 ? (
+        {!isReview && (
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
               <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                {searchQuery ? 'No notecards found' : 'No notecards yet'}
+                Loading {isNotecards ? 'notecards' : 'notes'}...
+              </div>
+            ) : isNotecards ? (
+              /* Notecards List */
+              filteredNotecards.length === 0 ? (
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  {searchQuery ? 'No notecards found' : 'No notecards yet'}
+                </div>
+              ) : (
+                <div className="space-y-1 px-2">
+                  {filteredNotecards.map((notecard) => (
+                    <div
+                      key={notecard.id}
+                      className={`relative rounded-lg transition-colors group border 
+                               ${
+                                 currentNotecard?.id === notecard.id
+                                   ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                   : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                               }`}
+                    >
+                      <button
+                        onClick={() => handleNotecardClick(notecard)}
+                        className="w-full text-left p-3 rounded-lg"
+                      >
+                        <div className="flex items-start justify-between gap-2 pr-8">
+                          <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                            {notecard.front || 'Empty front'}
+                          </h3>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            {formatDate(notecard.updatedAt)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
+                          {notecard.back || 'Empty back'}
+                        </p>
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteClick(notecard, e)}
+                        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : /* Notes List */
+            filteredNotes.length === 0 ? (
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                {searchQuery ? 'No notes found' : 'No notes yet'}
               </div>
             ) : (
               <div className="space-y-1 px-2">
-                {filteredNotecards.map((notecard) => (
-                  <div
-                    key={notecard.id}
-                    className={`relative rounded-lg transition-colors group border 
-                             ${
-                               currentNotecard?.id === notecard.id
-                                 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                                 : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
-                             }`}
+                {filteredNotes.map((note) => (
+                  <button
+                    key={note.id}
+                    onClick={() => handleNoteClick(note)}
+                    className={`w-full text-left p-3 rounded-lg transition-colors group border 
+                               ${
+                                 currentNote?.id === note.id
+                                   ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                   : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
+                               }`}
                   >
-                    <button
-                      onClick={() => handleNotecardClick(notecard)}
-                      className="w-full text-left p-3 rounded-lg"
-                    >
-                      <div className="flex items-start justify-between gap-2 pr-8">
-                        <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                          {notecard.front || 'Empty front'}
-                        </h3>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                          {formatDate(notecard.updatedAt)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
-                        {notecard.back || 'Empty back'}
-                      </p>
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteClick(notecard, e)}
-                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20 rounded transition-colors"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-medium text-gray-900 dark:text-white truncate">
+                        {note.title}
+                      </h3>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                        {formatDate(note.updatedAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
+                      {getPreviewText(note.content)}
+                    </p>
+                  </button>
                 ))}
               </div>
-            )
-          ) : /* Notes List */
-          filteredNotes.length === 0 ? (
-            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-              {searchQuery ? 'No notes found' : 'No notes yet'}
+            )}
+          </div>
+        )}
+
+        {/* Review Content */}
+        {isReview && (
+          <div className="flex-1 flex flex-col justify-center items-center p-8 text-center">
+            <div className="text-6xl mb-4">🧠</div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Review Mode
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Focus on your spaced repetition learning. Use the navigation tabs
+              above to switch between sections.
+            </p>
+            <div className="space-y-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                <span>Review statistics and progress</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span>Spaced repetition scheduling</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                <span>Learning analytics</span>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-1 px-2">
-              {filteredNotes.map((note) => (
-                <button
-                  key={note.id}
-                  onClick={() => handleNoteClick(note)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors group border 
-                             ${
-                               currentNote?.id === note.id
-                                 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                                 : 'border-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700'
-                             }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                      {note.title}
-                    </h3>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                      {formatDate(note.updatedAt)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
-                    {getPreviewText(note.content)}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Sync Status */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700">

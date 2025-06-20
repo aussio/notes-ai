@@ -20,26 +20,26 @@
 
 #### 1.1 Spaced Repetition Algorithm
 
-- [ ] Implement SM-2 algorithm for optimal review scheduling, except only correct/wrong
-- [ ] Add review difficulty ratings (Correct, Wrong)
-- [ ] Calculate next review dates based on performance
-- [ ] Track learning statistics (retention rate, streak, etc.)
+- [x] Implement SM-2 algorithm for optimal review scheduling, except only correct/wrong
+- [x] Add review difficulty ratings (Correct, Wrong)
+- [x] Calculate next review dates based on performance
+- [x] Track learning statistics (retention rate, streak, etc.)
 
 #### 1.2 Review Interface
 
-- [ ] Create dedicated review session page
-- [ ] Implement card presentation flow (front → back → rating)
-- [ ] Add keyboard shortcuts for quick reviews (1/a/space/left for wrong, 0/delete/return/right for correct)
+- [x] Create dedicated review session page
+- [x] Implement card presentation flow (front → back → rating)
+- [x] Add keyboard shortcuts for quick reviews (1/a/space/left for wrong, 0/delete/return/right for correct)
 - [ ] Add dragging/swiping card to the left for wrong, to the right for correct. Intended for mobile touchscreen.
-- [ ] Show progress during review sessions
-- [ ] Add daily review statistics and streaks
+- [x] Show progress during review sessions
+- [x] Add daily review statistics and streaks
 
 #### 1.3 Review Scheduling & Analytics
 
-- [ ] Daily review queue based on due dates
+- [x] Daily review queue based on due dates
 - [ ] Review calendar showing upcoming and overdue cards
-- [ ] Learning analytics dashboard (retention curves, difficulty distribution)
-- [ ] Review session history and statistics
+- [x] Learning analytics dashboard (retention curves, difficulty distribution)
+- [x] Review session history and statistics
 
 #### 1.4 Enhanced Notecard Management
 

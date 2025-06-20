@@ -68,8 +68,9 @@ export default function Home() {
         {currentNote ? (
           <NoteEditor />
         ) : (
-          <div className="flex items-center justify-center h-full p-8">
-            <div className="text-center max-w-lg w-full">
+          <div className="p-8 space-y-8">
+            {/* Welcome Section */}
+            <div className="text-center max-w-lg mx-auto">
               <div className="flex items-center justify-center mb-6">
                 <Image
                   src="/teal_duck_logo.png"
@@ -82,8 +83,8 @@ export default function Home() {
                 Welcome to Notes
               </h2>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Your cloud-first note-taking app. Select a note from the sidebar
-                to get started, or create a new note to begin writing.
+                Your cloud-first note-taking app with spaced repetition
+                learning.
               </p>
 
               {/* PWA Install Banner */}
