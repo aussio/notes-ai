@@ -47,6 +47,19 @@
 - [ ] Bulk actions (suspend, reset progress, bulk edit)
 - [ ] Notecard categories/tags for organization
 
+#### 1.5 Navigation & User Experience Enhancements (Recently Completed)
+
+- [x] Create dedicated review landing page with statistics and options
+- [x] Implement clean review/session routing (/review → /review/session)
+- [x] Add comprehensive navigation tabs (Notes | Cards | Review) in sidebar
+- [x] Enhance header with review statistics access button
+- [x] Create individual notecard statistics display above editor
+- [x] Implement focused review sidebar (hide notes/search, show review-specific content)
+- [x] Fix page scrolling issues across all layouts
+- [x] Add proper review dashboard with getting started guidance
+- [x] Implement cascade cleanup for deleted notecards (foreign key simulation)
+- [x] Fix spaced repetition statistics calculation bugs (infinite loops, negative values)
+
 #### Data Model Extensions
 
 ```typescript
@@ -306,10 +319,10 @@ interface Notecard {
 
 ### Phase 1 (Spaced Repetition)
 
-- [ ] Users can review notecards with spaced repetition scheduling
-- [ ] Review sessions show clear progress and statistics
-- [ ] Algorithm effectively schedules cards based on difficulty
-- [ ] Review interface is intuitive and keyboard-friendly
+- [x] Users can review notecards with spaced repetition scheduling
+- [x] Review sessions show clear progress and statistics
+- [x] Algorithm effectively schedules cards based on difficulty
+- [x] Review interface is intuitive and keyboard-friendly
 
 ### Phase 2 (Image Support)
 
@@ -319,5 +332,3 @@ interface Notecard {
 - [ ] Performance remains good with image content
 
 ---
-
-**Next Step**: Begin Phase 1.1 - Implement SM-2 spaced repetition algorithm and extend notecard data model.
