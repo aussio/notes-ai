@@ -2,10 +2,11 @@ import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
 import { useMemo } from 'react';
-import type { ReviewCard, ReviewSession, ReviewResult } from '@/types';
+import type { ReviewCard, ReviewSession, ReviewResult, NotecardReviewStats } from '@/types';
 import { spacedRepetitionDatabase } from '@/lib/spaced-repetition/database';
 import { calculateNextReview } from '@/lib/spaced-repetition/sm2-algorithm';
 import { useAuthStore } from '@/store/authStore';
+import { useNotecardsStore } from '@/store/notecardsStore';
 
 interface ReviewState {
   // Current review session state
@@ -65,24 +66,69 @@ export const useReviewStore = create<ReviewState>()(
           return;
         }
 
+        // Get notecards from the notecards store
+        const notecardsState = useNotecardsStore.getState();
+        const allNotecards = notecardsState.notecards;
+        
+        if (allNotecards.length === 0) {
+          set({ 
+            reviewQueue: [],
+            currentCardIndex: 0,
+            currentCard: null,
+            showAnswer: false,
+            isLoading: false,
+          });
+          return;
+        }
+
         set({ isLoading: true, error: null });
         try {
-          // Load due cards first, then new cards to fill the queue
-          const dueCards = await spacedRepetitionDatabase.getDueCards(
-            user.id,
-            50
-          );
-          const newCards = await spacedRepetitionDatabase.getNewCards(
-            user.id,
-            Math.max(0, 20 - dueCards.length)
-          );
-
-          const reviewQueue = [...dueCards, ...newCards];
+          // Get existing review stats from database
+          const existingStats = await spacedRepetitionDatabase.getAllReviewStats(user.id);
+          const existingStatsMap = new Map(existingStats.map((stat: NotecardReviewStats) => [stat.notecard_id, stat]));
+          
+          const now = new Date();
+          const reviewCards: ReviewCard[] = [];
+          
+          // Create review cards for all notecards
+          for (const notecard of allNotecards) {
+            const existingReviewStats = existingStatsMap.get(notecard.id);
+            
+            if (existingReviewStats) {
+              // Card has been reviewed before - check if it's due
+              if (existingReviewStats.nextReviewDate <= now) {
+                reviewCards.push({
+                  notecard,
+                  reviewStats: existingReviewStats,
+                });
+              }
+            } else {
+              // New card - add to review queue with temporary stats
+              const tempReviewStats: NotecardReviewStats = {
+                id: `temp_${notecard.id}`,
+                notecard_id: notecard.id,
+                user_id: user.id,
+                easinessFactor: 2.5,
+                intervalDays: 0,
+                repetitions: 0,
+                nextReviewDate: now,
+                lastReviewDate: null,
+                totalReviews: 0,
+                correctReviews: 0,
+                createdAt: now,
+                updatedAt: now,
+              };
+              reviewCards.push({
+                notecard,
+                reviewStats: tempReviewStats,
+              });
+            }
+          }
 
           set({
-            reviewQueue,
+            reviewQueue: reviewCards,
             currentCardIndex: 0,
-            currentCard: reviewQueue.length > 0 ? reviewQueue[0] : null,
+            currentCard: reviewCards.length > 0 ? reviewCards[0] : null,
             showAnswer: false,
             isLoading: false,
           });
@@ -145,9 +191,7 @@ export const useReviewStore = create<ReviewState>()(
           );
 
           // Check if this is a new card (review stats not yet saved to database)
-          const isNewCard =
-            currentCard.reviewStats.totalReviews === 0 &&
-            currentCard.reviewStats.lastReviewDate === null;
+          const isNewCard = currentCard.reviewStats.id.startsWith('temp_');
 
           let updatedStats;
           if (isNewCard) {
@@ -275,6 +319,7 @@ export const useReviewStore = create<ReviewState>()(
         if (!user) return;
 
         try {
+          // Get statistics from the spaced repetition database
           const statistics = await spacedRepetitionDatabase.getReviewStatistics(
             user.id
           );

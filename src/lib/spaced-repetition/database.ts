@@ -154,6 +154,19 @@ export const spacedRepetitionDatabase: SpacedRepetitionDatabase = {
     }
   },
 
+  async getAllReviewStats(userId: string): Promise<NotecardReviewStats[]> {
+    try {
+      const dbStats = await spacedRepetitionDb.notecardReviewStats
+        .where('user_id')
+        .equals(userId)
+        .toArray();
+      return dbStats.map(deserializeReviewStats);
+    } catch (error) {
+      console.error('Failed to get all review stats:', error);
+      throw new Error('Failed to load review stats');
+    }
+  },
+
   async createReviewStats(
     notecardId: string,
     userId: string
@@ -227,7 +240,6 @@ export const spacedRepetitionDatabase: SpacedRepetitionDatabase = {
           });
         }
       }
-
       return reviewCards;
     } catch (error) {
       console.error('Failed to get due cards:', error);

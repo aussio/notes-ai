@@ -232,6 +232,7 @@ export interface SpacedRepetitionDatabase {
     notecardId: string,
     userId: string
   ) => Promise<NotecardReviewStats | undefined>;
+  getAllReviewStats: (userId: string) => Promise<NotecardReviewStats[]>;
   createReviewStats: (
     notecardId: string,
     userId: string

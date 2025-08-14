@@ -54,39 +54,7 @@ export const ReviewStatistics: React.FC = () => {
         />
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Quick Actions
-        </h3>
-        <div className="flex flex-wrap gap-3">
-          {dueCards > 0 && (
-            <a
-              href="/review/session"
-              className="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg transition-colors"
-            >
-              <span className="mr-2">⏰</span>
-              Review {dueCards} Due Cards
-            </a>
-          )}
-          {newCards > 0 && (
-            <a
-              href="/review/session"
-              className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors"
-            >
-              <span className="mr-2">✨</span>
-              Learn {newCards} New Cards
-            </a>
-          )}
-          <a
-            href="/notecards"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-          >
-            <span className="mr-2">➕</span>
-            Create New Cards
-          </a>
-        </div>
-      </div>
+
 
       {/* Progress Insights */}
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">

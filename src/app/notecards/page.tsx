@@ -55,52 +55,54 @@ export default function NotecardsPage() {
         onToggleDebug={handleToggleDebug}
         isDebugVisible={isDebugVisible}
       >
-        {currentNotecard ? (
-          <div className="flex flex-col h-full">
-            {/* Individual Notecard Stats */}
-            <div className="px-6 pt-4 pb-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-              <NotecardStats notecardId={currentNotecard.id} />
-            </div>
-
-            {/* Notecard Editor */}
-            <div className="flex-1">
-              <NotecardEditor notecard={currentNotecard} />
-            </div>
-          </div>
-        ) : (
-          <div className="p-8 space-y-8">
-            {/* Welcome Section */}
-            <div className="text-center max-w-lg mx-auto">
-              <div className="flex items-center justify-center mb-6">
-                <Image
-                  src="/teal_duck_logo.png"
-                  alt="Teal Duck Logo"
-                  width={64}
-                  height={64}
-                />
+        <div className="h-full overflow-y-auto">
+          {currentNotecard ? (
+            <div className="flex flex-col h-full">
+              {/* Individual Notecard Stats */}
+              <div className="px-6 pt-4 pb-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                <NotecardStats notecardId={currentNotecard.id} />
               </div>
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                Welcome to Notecards
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Your cloud-first spaced repetition system. Select a notecard
-                from the sidebar to get started, or create a new notecard to
-                begin studying.
-              </p>
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  ☁️ All your notecards are securely stored in the cloud with
-                  Supabase!
+
+              {/* Notecard Editor */}
+              <div className="flex-1">
+                <NotecardEditor notecard={currentNotecard} />
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 space-y-8">
+              {/* Welcome Section */}
+              <div className="text-center max-w-lg mx-auto">
+                <div className="flex items-center justify-center mb-6">
+                  <Image
+                    src="/teal_duck_logo.png"
+                    alt="Teal Duck Logo"
+                    width={64}
+                    height={64}
+                  />
+                </div>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Welcome to Notecards
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Your cloud-first spaced repetition system. Select a notecard
+                  from the sidebar to get started, or create a new notecard to
+                  begin studying.
                 </p>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    ☁️ All your notecards are securely stored in the cloud with
+                    Supabase!
+                  </p>
+                </div>
+              </div>
+
+              {/* Review Statistics Dashboard */}
+              <div className="max-w-6xl mx-auto">
+                <ReviewStatistics />
               </div>
             </div>
-
-            {/* Review Statistics Dashboard */}
-            <div className="max-w-6xl mx-auto">
-              <ReviewStatistics />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </MainLayout>
 
       {/* Debug Panel for Notecards */}

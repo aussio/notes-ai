@@ -65,40 +65,42 @@ export default function Home() {
         isDebugVisible={isDebugVisible}
         autoFocusTitle={shouldAutoFocusTitle}
       >
-        {currentNote ? (
-          <NoteEditor />
-        ) : (
-          <div className="p-8 space-y-8">
-            {/* Welcome Section */}
-            <div className="text-center max-w-lg mx-auto">
-              <div className="flex items-center justify-center mb-6">
-                <Image
-                  src="/teal_duck_logo.png"
-                  alt="Teal Duck Logo"
-                  width={64}
-                  height={64}
-                />
-              </div>
-              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
-                Welcome to Notes
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Your cloud-first note-taking app with spaced repetition
-                learning.
-              </p>
-
-              {/* PWA Install Banner */}
-              <PWAInstallBanner />
-
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  ☁️ All your notes are securely stored in the cloud with
-                  Supabase!
+        <div className="h-full overflow-y-auto">
+          {currentNote ? (
+            <NoteEditor />
+          ) : (
+            <div className="p-8 space-y-8">
+              {/* Welcome Section */}
+              <div className="text-center max-w-lg mx-auto">
+                <div className="flex items-center justify-center mb-6">
+                  <Image
+                    src="/teal_duck_logo.png"
+                    alt="Teal Duck Logo"
+                    width={64}
+                    height={64}
+                  />
+                </div>
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Welcome to Notes
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Your cloud-first note-taking app with spaced repetition
+                  learning.
                 </p>
+
+                {/* PWA Install Banner */}
+                <PWAInstallBanner />
+
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    ☁️ All your notes are securely stored in the cloud with
+                    Supabase!
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </MainLayout>
 
       {/* Debug Panel */}

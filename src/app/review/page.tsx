@@ -46,17 +46,14 @@ export default function ReviewPage() {
               {/* Review Statistics Dashboard */}
               <ReviewStatistics />
 
-              {/* Quick Actions */}
+              {/* Start Review Action */}
               {statistics && statistics.totalCards > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Start Reviewing
-                  </h3>
-                  <div className="flex flex-wrap gap-4">
+                  <div className="text-center">
                     {statistics.dueCards > 0 || statistics.newCards > 0 ? (
                       <Link
                         href="/review/session"
-                        className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                        className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-lg"
                       >
                         <span className="mr-2">🧠</span>
                         Start Review Session
@@ -65,7 +62,7 @@ export default function ReviewPage() {
                         </span>
                       </Link>
                     ) : (
-                      <div className="text-center py-8 w-full">
+                      <div className="py-8">
                         <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">
                           🎉
                         </div>
@@ -78,7 +75,7 @@ export default function ReviewPage() {
                         </p>
                         <Link
                           href="/notecards"
-                          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                          className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
                         >
                           Create More Cards
                         </Link>
